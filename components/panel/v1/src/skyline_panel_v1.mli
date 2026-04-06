@@ -1,0 +1,17 @@
+open! Core
+open! Bonsai_web
+module Config = Bonsai_web_panel.Config
+module Logic = Bonsai_web_panel.Logic
+module Ui = Bonsai_web_panel.Ui
+
+(** [Skyline_panel] provides Skyline styles for the [Bonsai_web_panel]. You can use
+    [Skyline_panel.style_config] with [Bonsai_web_panel] functions, or just
+    [Skyline_panel.component] as shorthand. *)
+
+val style_config : Ui.Style_config.t
+
+val component
+  :  logic:'a Logic.t Bonsai.t
+  -> content:'a Ui.Content.t
+  -> local_ Bonsai.graph
+  -> Vdom.Node.t Bonsai.t

@@ -1,0 +1,8 @@
+(library
+ (name private_skyline_keyboard_shortcut)
+ (public_name skyline.private_keyboard_shortcut)
+ (libraries async_kernel bonsai bonsai_web
+   bonsai_web_components.keyboard_shortcut core virtual_dom.css_gen
+   js_of_ocaml virtual_dom.ui_effect virtual_dom.keyboard virtual_dom)
+ (preprocess
+  (pps ppx_jane ppx_css bonsai.ppx_bonsai js_of_ocaml-ppx)))

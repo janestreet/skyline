@@ -1,0 +1,8 @@
+(library
+ (name skyline_button_v2_jsdom_test)
+ (public_name skyline.button_v2_jsdom_test)
+ (libraries async_js.async_test async_kernel bonsai_web core
+   bonsai_web_test.jsdom skyline_button_v2)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx ppx_html ppx_with))
+ (flags :standard -alert -skyline_beta))

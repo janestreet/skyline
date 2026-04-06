@@ -1,0 +1,7 @@
+(library
+ (name skyline_text_document_test_v1)
+ (public_name skyline.text_document_test_v1)
+ (libraries bonsai_web core js_of_ocaml bonsai_web_test.jsdom
+   skyline_text_document_v1)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx ppx_with)))

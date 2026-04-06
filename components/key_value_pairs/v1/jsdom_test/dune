@@ -1,0 +1,7 @@
+(library
+ (name skyline_key_value_pairs_v1_jsdom_test)
+ (public_name skyline.key_value_pairs_v1_jsdom_test)
+ (libraries async_kernel bonsai_web core bonsai_web_test.jsdom
+   bonsai_web_components.lucide skyline_key_value_pairs_v1)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx ppx_html ppx_with)))

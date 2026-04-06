@@ -1,0 +1,10 @@
+(library
+ (name skyline_multi_select_v1)
+ (public_name skyline.multi_select_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx ppx_css bonsai.ppx_bonsai))
+ (libraries bonsai bonsai_web bonsai_web_components.element_size_hooks
+   bonsai_web_components.codicons core virtual_dom.css_gen fuzzy_match.search
+   js_of_ocaml private_skyline_autofocus private_skyline_theme
+   private_skyline_typeahead skyline_flex_v1 skyline_input_v1 skyline_text_v1
+   skyline_theme_v1))

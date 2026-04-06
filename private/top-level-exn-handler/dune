@@ -1,0 +1,8 @@
+(library
+ (name private_skyline_exn_handler)
+ (public_name skyline.private_exn_handler)
+ (libraries async_kernel bonsai bonsai_web core virtual_dom.css_gen
+   js_of_ocaml skyline_theme_v1 virtual_dom.ui_effect
+   core_kernel.version_util_compat virtual_dom)
+ (preprocess
+  (pps ppx_jane ppx_css bonsai.ppx_bonsai js_of_ocaml-ppx)))

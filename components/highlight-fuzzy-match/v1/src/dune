@@ -1,0 +1,6 @@
+(library
+ (name skyline_fuzzy_match_v1)
+ (public_name skyline.fuzzy_match_v1)
+ (libraries core)
+ (preprocess
+  (pps ppx_jane -compare-require-explicit-locality)))

@@ -1,0 +1,6 @@
+(library
+ (name bonsai_web_browser_storage)
+ (public_name skyline.bonsai_web_components.browser_storage)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx ppx_here))
+ (libraries bonsai bonsai_web core js_of_ocaml))

@@ -1,0 +1,9 @@
+(library
+ (name skyline_modal_v2_jsdom_test)
+ (public_name skyline.modal_v2_jsdom_test)
+ (libraries async_js.async_test async_kernel bonsai_test bonsai_web
+   bonsai_web_test core expect_test_helpers_core bonsai_web_test.jsdom
+   private_skyline_prelude skyline_modal_v2)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx ppx_html ppx_with))
+ (flags :standard -alert -skyline_beta))

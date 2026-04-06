@@ -1,0 +1,7 @@
+(library
+ (name skyline_file_icon_v1)
+ (public_name skyline.file_icon_v1)
+ (libraries bonsai bonsai_web core virtual_dom.css_gen
+   bonsai_web_components.seti_icons)
+ (preprocess
+  (pps ppx_jane)))

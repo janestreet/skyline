@@ -1,0 +1,8 @@
+(library
+ (name skyline_entrypoint)
+ (public_name skyline.entrypoint)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai))
+ (libraries bonsai_web core js_of_ocaml private_skyline_exn_handler
+   private_skyline_keyboard_shortcut private_skyline_theme
+   private_skyline_toast private_skyline_view_compat skyline_theme_v1))

@@ -1,0 +1,7 @@
+(library
+ (name skyline_popover_v2)
+ (public_name skyline.popover_v2)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css ppx_html))
+ (libraries bonsai bonsai_web bonsai_web_components.toplayer core
+   virtual_dom.css_gen private_skyline_prelude skyline_card_v2 skyline_size))

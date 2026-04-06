@@ -1,0 +1,6 @@
+(library
+ (name skyline_size)
+ (public_name skyline.size)
+ (preprocess
+  (pps ppx_jane -compare-require-explicit-locality))
+ (libraries core))

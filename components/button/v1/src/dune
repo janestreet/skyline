@@ -1,0 +1,11 @@
+(library
+ (name skyline_button_v1)
+ (public_name skyline.button_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css))
+ (libraries bonsai bonsai_web bonsai_web_components.element_size_hooks
+   bonsai_web_components.codicons core virtual_dom.css_gen js_of_ocaml
+   private_skyline_autofocus skyline_confirm_guard_v1 skyline_context_menu_v1
+   skyline_errors_v1 skyline_flex_v1 skyline_loading_indicator_v1
+   skyline_loading_state_v1 skyline_popover_v1 skyline_text_v1
+   skyline_theme_v1 skyline_toast_v1 skyline_tooltip_v1))

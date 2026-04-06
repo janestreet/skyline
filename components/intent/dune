@@ -1,0 +1,6 @@
+(library
+ (name skyline_intent)
+ (public_name skyline.intent)
+ (preprocess
+  (pps ppx_jane -compare-require-explicit-locality))
+ (libraries core))

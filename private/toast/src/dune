@@ -1,0 +1,6 @@
+(library
+ (name private_skyline_toast)
+ (public_name skyline.private_toast)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai))
+ (libraries bonsai core))

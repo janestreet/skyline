@@ -1,0 +1,7 @@
+(library
+ (name private_skyline_prelude)
+ (public_name skyline.private_prelude)
+ (preprocess
+  (pps ppx_jane))
+ (libraries bonsai bonsai_web bonsai_web_components.vdom_node_reset core
+   private_skyline_utility_classes skyline_tokens_v2 tailwind_colors))

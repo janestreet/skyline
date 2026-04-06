@@ -1,0 +1,6 @@
+(library
+ (name bonsai_web_ui_tree_table)
+ (public_name skyline.bonsai_web_components.tree_table)
+ (preprocess
+  (pps ppx_jane ppx_pattern_bind))
+ (libraries core incr_map incremental))

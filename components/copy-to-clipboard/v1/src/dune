@@ -1,0 +1,7 @@
+(library
+ (name skyline_copy_to_clipboard_v1)
+ (public_name skyline.copy_to_clipboard_v1)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai))
+ (libraries bonsai bonsai_web bonsai_web_components.bonsai_clipboard
+   bonsai_web_components.codicons core skyline_button_v1 skyline_theme_v1))

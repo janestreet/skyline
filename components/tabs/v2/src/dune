@@ -1,0 +1,8 @@
+(library
+ (name skyline_tabs_v2)
+ (public_name skyline.tabs_v2)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_html ppx_css))
+ (libraries bonsai.kernel_components.selection_state bonsai_web core
+   virtual_dom.css_gen private_skyline_prelude skyline_button_v2 skyline_size)
+ (flags :standard -alert -skyline_beta))

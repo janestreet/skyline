@@ -1,0 +1,7 @@
+(library
+ (name skyline_tabs_v1)
+ (public_name skyline.tabs_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css))
+ (libraries bonsai bonsai_web bonsai_web_components.codicons core
+   virtual_dom.css_gen skyline_text_v1 skyline_theme_v1 skyline_tooltip_v1))

@@ -1,0 +1,6 @@
+(library
+ (name skyline_panel_v1)
+ (public_name skyline.panel_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css))
+ (libraries bonsai bonsai_web bonsai_web_panel core skyline_theme_v1))

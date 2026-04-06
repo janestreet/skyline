@@ -1,0 +1,8 @@
+(executables
+ (modes byte exe)
+ (names main)
+ (libraries async_kernel bonsai bonsai_web core virtual_dom.css_gen
+   js_of_ocaml pending_or_error private_skyline_utility_classes
+   tailwind_colors)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_tailwind ppx_html)))

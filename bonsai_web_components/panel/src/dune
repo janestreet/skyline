@@ -1,0 +1,9 @@
+(library
+ (name bonsai_web_panel)
+ (public_name skyline.bonsai_web_components.panel)
+ (libraries bonsai bonsai.extra bonsai_web bonsai_web_panel_config
+   bonsai_web_components.codicons base.composition_infix core
+   virtual_dom.css_gen js_of_ocaml virtual_dom.svg)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_html ppx_css
+    -dont-hash-prefixes=--)))

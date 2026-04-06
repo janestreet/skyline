@@ -1,0 +1,8 @@
+(library
+ (name private_skyline_typeahead)
+ (public_name skyline.private_typeahead)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai))
+ (libraries bonsai bonsai_web bonsai_web_components.toplayer core
+   virtual_dom.css_gen fuzzy_match.search js_of_ocaml private_skyline_theme
+   skyline_flex_v1 skyline_text_v1 skyline_theme_v1))

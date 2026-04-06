@@ -1,0 +1,7 @@
+(library
+ (name skyline_codemirror_diff_v1)
+ (public_name skyline.codemirror_diff_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx ppx_css))
+ (libraries bonsai bonsai_web_components.codemirror core virtual_dom.css_gen
+   gen_js_api js_of_ocaml patdiff.kernel virtual_dom))

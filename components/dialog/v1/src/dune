@@ -1,0 +1,9 @@
+(library
+ (name skyline_dialog_v1)
+ (public_name skyline.dialog_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css))
+ (libraries async_kernel bonsai bonsai_web
+   bonsai_web_components.themed_toplayer core virtual_dom.css_gen js_of_ocaml
+   private_skyline_theme skyline_button_v1 skyline_flex_v1 skyline_text_v1
+   skyline_theme_v1))

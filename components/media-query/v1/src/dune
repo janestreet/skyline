@@ -1,0 +1,6 @@
+(library
+ (name skyline_media_query_v1)
+ (public_name skyline.media_query_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai))
+ (libraries bonsai bonsai_web core js_of_ocaml))

@@ -1,0 +1,6 @@
+(library
+ (name bonsai_web_panel_config)
+ (public_name skyline.bonsai_web_components.panel_config)
+ (libraries core ppx_stable_witness.stable_witness core_kernel.uuid)
+ (preprocess
+  (pps bonsai.ppx_bonsai ppx_delta_types ppx_jane ppx_bin_and_sexp_digest)))

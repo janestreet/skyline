@@ -1,0 +1,7 @@
+(library
+ (name private_skyline_view_compat)
+ (public_name skyline.private_view_compat)
+ (preprocess
+  (pps ppx_jane ppx_css))
+ (libraries bonsai bonsai_web bonsai_web.ui_view core virtual_dom.css_gen
+   private_skyline_theme skyline_text_v1 skyline_theme_v1))

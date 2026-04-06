@@ -1,0 +1,8 @@
+(library
+ (name skyline_checkbox_v1)
+ (public_name skyline.checkbox_v1)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx))
+ (libraries am_running_how_js bonsai_web bonsai_web_components.checkbox
+   bonsai_web_components.codicons core virtual_dom.css_gen js_of_ocaml
+   skyline_input_v1 skyline_text_v1 skyline_theme_v1))

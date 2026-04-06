@@ -1,0 +1,7 @@
+(library
+ (name skyline_theme_v1)
+ (public_name skyline.theme_v1)
+ (libraries async_kernel bonsai bonsai_web core virtual_dom.css_gen
+   js_of_ocaml private_skyline_theme virtual_dom.ui_effect virtual_dom)
+ (preprocess
+  (pps ppx_jane ppx_css bonsai.ppx_bonsai js_of_ocaml-ppx)))

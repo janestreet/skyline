@@ -1,0 +1,9 @@
+(library
+ (name skyline_button_v2)
+ (public_name skyline.button_v2)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css ppx_html))
+ (libraries am_running_how_js bonsai bonsai_web bonsai_web_components.icon
+   core virtual_dom.css_gen js_of_ocaml bonsai_web_components.lucide
+   private_skyline_prelude skyline_intent skyline_size skyline_tooltip_v2)
+ (flags :standard -alert -skyline_beta))

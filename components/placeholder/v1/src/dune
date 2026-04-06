@@ -1,0 +1,8 @@
+(library
+ (name skyline_placeholder_v1)
+ (public_name skyline.placeholder_v1)
+ (libraries bonsai bonsai_web bonsai_web_components.codicons core
+   virtual_dom.css_gen skyline_button_v1 skyline_flex_v1 skyline_text_v1
+   skyline_theme_v1)
+ (preprocess
+  (pps ppx_jane)))

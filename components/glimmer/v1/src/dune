@@ -1,0 +1,6 @@
+(library
+ (name skyline_glimmer_v1)
+ (public_name skyline.glimmer_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css))
+ (libraries bonsai bonsai_web core virtual_dom.css_gen))

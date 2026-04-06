@@ -1,0 +1,7 @@
+(library
+ (name skyline_loading_indicator_v1)
+ (public_name skyline.loading_indicator_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css))
+ (libraries bonsai bonsai_web bonsai_web_components.codicons core
+   virtual_dom.css_gen))

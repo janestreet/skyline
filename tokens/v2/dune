@@ -1,0 +1,6 @@
+(library
+ (name skyline_tokens_v2)
+ (public_name skyline.tokens_v2)
+ (libraries core virtual_dom.css_gen tailwind_colors)
+ (preprocess
+  (pps ppx_jane ppx_css)))

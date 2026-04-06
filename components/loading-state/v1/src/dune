@@ -1,0 +1,6 @@
+(library
+ (name skyline_loading_state_v1)
+ (public_name skyline.loading_state_v1)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai))
+ (libraries bonsai core))

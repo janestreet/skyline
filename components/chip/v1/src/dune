@@ -1,0 +1,7 @@
+(library
+ (name skyline_chip_v1)
+ (public_name skyline.chip_v1)
+ (libraries bonsai bonsai_web core virtual_dom.css_gen skyline_flex_v1
+   skyline_text_v1 skyline_theme_v1)
+ (preprocess
+  (pps ppx_jane)))

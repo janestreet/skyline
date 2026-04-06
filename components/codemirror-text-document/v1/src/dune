@@ -1,0 +1,10 @@
+(library
+ (name skyline_text_document_v1)
+ (public_name skyline.text_document_v1)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css))
+ (libraries async_kernel bonsai_web
+   bonsai_web_components.bonsai_codemirror_read_only
+   bonsai_web_components.codemirror core gen_js_api js_of_ocaml
+   skyline_codemirror_diff_v1 skyline_codemirror_highlight_lines_v1
+   skyline_entrypoint skyline_flex_v1 virtual_dom))

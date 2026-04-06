@@ -1,0 +1,7 @@
+(library
+ (name skyline_popover_v2_jsdom_test)
+ (public_name skyline.popover_v2_jsdom_test)
+ (libraries async_kernel bonsai_test bonsai_web bonsai_web_test core
+   expect_test_helpers_core bonsai_web_test.jsdom skyline_popover_v2)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx ppx_html ppx_with)))

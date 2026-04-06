@@ -1,0 +1,6 @@
+(library
+ (name skyline_confirm_guard_v1)
+ (public_name skyline.confirm_guard_v1)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai))
+ (libraries bonsai core))

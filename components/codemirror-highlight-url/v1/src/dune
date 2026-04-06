@@ -1,0 +1,6 @@
+(library
+ (name skyline_codemirror_url_v1)
+ (public_name skyline.codemirror_url_v1)
+ (libraries bonsai_web_components.codemirror gen_js_api js_of_ocaml)
+ (preprocess
+  (pps ppx_jane)))

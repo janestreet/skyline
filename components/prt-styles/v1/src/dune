@@ -1,0 +1,7 @@
+(library
+ (name skyline_prt_styles_v1)
+ (public_name skyline.prt_styles_v1)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai ppx_css))
+ (libraries bonsai bonsai_web bonsai_web.web_ui_partial_render_table_styling
+   core virtual_dom.css_gen private_skyline_theme skyline_theme_v1))

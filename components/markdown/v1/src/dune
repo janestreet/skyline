@@ -1,0 +1,9 @@
+(library
+ (name skyline_markdown_v1)
+ (public_name skyline.markdown_v1)
+ (libraries bonsai_web bonsai_web_components.bonsai_codemirror_read_only
+   bonsai_web_components.codemirror bonsai_web_components.codicons core
+   virtual_dom.css_gen gen_js_api omd skyline_divider_v1 skyline_flex_v1
+   skyline_placeholder_v1 skyline_text_v1 skyline_theme_v1 skyline_tooltip_v1)
+ (preprocess
+  (pps ppx_jane)))

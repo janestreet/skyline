@@ -1,0 +1,6 @@
+(library
+ (name skyline_input_v1)
+ (public_name skyline.input_v1)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai))
+ (libraries bonsai bonsai_web core))

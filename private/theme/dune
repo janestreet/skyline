@@ -1,0 +1,13 @@
+(library
+ (name private_skyline_theme)
+ (public_name skyline.private_theme)
+ (libraries core virtual_dom.css_gen js_of_ocaml skyline_tokens_v2
+   virtual_dom.ui_effect virtual_dom)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx)))
+
+(rule
+ (targets embedded_files.ml embedded_files.mli)
+ (deps %{bin:ocaml-embed-file} ./stylesheet.css)
+ (action
+  (bash "%{deps} -output embedded_files")))
