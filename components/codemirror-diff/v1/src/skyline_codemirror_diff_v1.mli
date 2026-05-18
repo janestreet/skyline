@@ -1,5 +1,16 @@
 open! Core
 
+module Diff_side : sig
+  type t =
+    | Left
+    | Right
+  [@@deriving equal]
+end
+
+(** A facet indicating which side of a side-by-side diff this editor represents. Returns
+    [None] for non-side-by-side editors. *)
+val diff_side : (Diff_side.t, Diff_side.t option) Codemirror.State.Facet.t Lazy.t
+
 (** A Codemirror extension that renders a diff of the editor state vs [original]. When
     [context] is [Some lines], the document contents that are beyond the context will be
     hidden. *)

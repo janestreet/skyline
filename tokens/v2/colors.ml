@@ -211,7 +211,7 @@ module Background = struct
 
   let secondary = color ~light:zinc200 ~dark:zinc600
   let secondary_hover = color ~light:zinc300 ~dark:zinc500
-  let secondary_active = color ~light:zinc500 ~dark:zinc700
+  let secondary_active = color ~light:zinc400 ~dark:zinc700
   let danger = color ~light:red500 ~dark:red500
   let danger_hover = color ~light:red600 ~dark:red600
   let danger_active = color ~light:red700 ~dark:red700
@@ -271,5 +271,5 @@ module Background = struct
 end
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

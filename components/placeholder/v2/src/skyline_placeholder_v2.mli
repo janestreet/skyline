@@ -30,6 +30,7 @@ open! Bonsai_web
 (** [view] creates the placeholder element.
     - [?test_selector] - attaches a test attribute to the container
     - [?attrs] - additional attributes to apply to the container
+    - [?size] - determines the size of the placeholder
     - [?icon] - an optional icon displayed above the title
     - [~title] - heading title text
     - [~message] - message content displayed below the title
@@ -38,6 +39,7 @@ open! Bonsai_web
 val view
   :  ?test_selector:Test_selector.t
   -> ?attrs:Vdom.Attr.t list
+  -> ?size:Skyline_size.t
   -> ?icon:Bonsai_web_icon.t
   -> title:string
   -> message:Vdom.Node.t

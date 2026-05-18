@@ -53,6 +53,10 @@ module Element = struct
     ;;
   end
 
+  let focus (t : Js_of_ocaml.Dom_html.element Js_of_ocaml.Js.t) =
+    Effect.of_thunk (fun () -> t##focus)
+  ;;
+
   let scroll_into_view
     ?(options = Scroll_into_view_options.default)
     (t : Js_of_ocaml.Dom_html.element Js_of_ocaml.Js.t)

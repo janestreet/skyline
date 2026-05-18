@@ -117,23 +117,28 @@ module Style = struct
         }
 
         .tooltip-animate {
-          /* Fallback animation (fade + zoom) in case side-specific selectors don't apply */
-          animation: skyline-tooltip-in 150ms ease-out both;
           transform-origin: var(--radix-tooltip-content-transform-origin, center);
-          will-change: transform, opacity;
+
+          @media not (prefers-reduced-motion: reduce) {
+            /* Fallback animation (fade + zoom) in case side-specific selectors don't apply */
+            animation: skyline-tooltip-in 150ms ease-out both;
+            will-change: transform, opacity;
+          }
         }
         /* It's kinda sad that we're hard-coding `data-floating-placement` here, but it's not core to tooltip behavior so maybe fine. */
-        .tooltip-animate[data-floating-placement^="top"] {
-          animation-name: skyline-tooltip-in-from-bottom;
-        }
-        .tooltip-animate[data-floating-placement^="bottom"] {
-          animation-name: skyline-tooltip-in-from-top;
-        }
-        .tooltip-animate[data-floating-placement^="left"] {
-          animation-name: skyline-tooltip-in-from-right;
-        }
-        .tooltip-animate[data-floating-placement^="right"] {
-          animation-name: skyline-tooltip-in-from-left;
+        @media not (prefers-reduced-motion: reduce) {
+          .tooltip-animate[data-floating-placement^="top"] {
+            animation-name: skyline-tooltip-in-from-bottom;
+          }
+          .tooltip-animate[data-floating-placement^="bottom"] {
+            animation-name: skyline-tooltip-in-from-top;
+          }
+          .tooltip-animate[data-floating-placement^="left"] {
+            animation-name: skyline-tooltip-in-from-right;
+          }
+          .tooltip-animate[data-floating-placement^="right"] {
+            animation-name: skyline-tooltip-in-from-left;
+          }
         }
 
         .tooltip-default {
@@ -213,7 +218,7 @@ module Style = struct
   ;;
 end
 
-let arrow_node = [%html {|<div %{Style.arrow}></div>|}]
+let arrow_node = [%html.jsx {|<div %{Style.arrow}></div>|}]
 
 let attr
   ?test_selector
@@ -228,7 +233,7 @@ let attr
   =
   let attrs = Style.make ~color ~attrs in
   let view =
-    {%html|
+    {%html.jsx|
       <div
         *{Classes.[flex; flex_col; text_xs]}
         %{Test_selector.attr_of_opt test_selector}
@@ -293,9 +298,9 @@ let text_attr
     ?alignment
     ?behavior
     ?arrow
-    [%html {|<span %{Style.text}> #{content} </span>|}]
+    [%html.jsx {|<span %{Style.text}> #{content} </span>|}]
 ;;
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

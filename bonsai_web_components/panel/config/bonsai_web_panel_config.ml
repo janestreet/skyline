@@ -23,6 +23,7 @@ module Stable = struct
     module V1 = struct
       module Id =
         (val String_id.make
+               ~caller_identity:String_id.legacy_identity
                ~module_name:"Bonsai_web_panel_config.Panel_id"
                ~include_default_validation:true
                ())
@@ -224,6 +225,88 @@ module Stable = struct
         List.fold children ~init ~f:(fun init (t, _) -> fold ~init ~f t)
       | Tabbed { tabs; _ } ->
         Nonempty_list.fold ~init tabs ~f:(fun init (t, _) -> fold ~init ~f t)
+    ;;
+
+    let rec fold' t ~init ~f =
+      let init = f init t in
+      match t.config with
+      | Content _ -> init
+      | Horizontal_fixed children | Vertical_fixed children | Vertical_variable children
+        -> List.fold children ~init ~f:(fun init (t, _) -> fold' ~init ~f t)
+      | Tabbed { tabs; _ } ->
+        Nonempty_list.fold ~init tabs ~f:(fun init (t, _) -> fold' ~init ~f t)
+    ;;
+
+    let rec map' t ~f =
+      let t = f t in
+      match t.config with
+      | Content _ -> t
+      | Horizontal_fixed children ->
+        { t with
+          config =
+            Horizontal_fixed (List.map children ~f:(fun (t, layout) -> map' ~f t, layout))
+        }
+      | Vertical_fixed children ->
+        { t with
+          config =
+            Vertical_fixed (List.map children ~f:(fun (t, layout) -> map' ~f t, layout))
+        }
+      | Vertical_variable children ->
+        { t with
+          config =
+            Vertical_variable
+              (List.map children ~f:(fun (t, layout) -> map' ~f t, layout))
+        }
+      | Tabbed { tabs; current_tab } ->
+        { t with
+          config =
+            Tabbed
+              { current_tab
+              ; tabs = Nonempty_list.map tabs ~f:(fun (t, name) -> map' ~f t, name)
+              }
+        }
+    ;;
+
+    let rec map_or_error t ~f =
+      let open Or_error.Let_syntax in
+      let%bind t = f t in
+      match t.config with
+      | Content _ -> Ok t
+      | Horizontal_fixed children ->
+        let%bind children =
+          List.map children ~f:(fun (t, layout) ->
+            let%bind t = map_or_error ~f t in
+            Ok (t, layout))
+          |> Or_error.all
+        in
+        Ok { t with config = Horizontal_fixed children }
+      | Vertical_fixed children ->
+        let%bind children =
+          List.map children ~f:(fun (t, layout) ->
+            let%bind t = map_or_error ~f t in
+            Ok (t, layout))
+          |> Or_error.all
+        in
+        Ok { t with config = Vertical_fixed children }
+      | Vertical_variable children ->
+        let%bind children =
+          List.map children ~f:(fun (t, layout) ->
+            let%bind t = map_or_error ~f t in
+            Ok (t, layout))
+          |> Or_error.all
+        in
+        Ok { t with config = Vertical_variable children }
+      | Tabbed { tabs; current_tab } ->
+        let%bind tabs =
+          Nonempty_list.map tabs ~f:(fun (t, name) ->
+            let%bind t = map_or_error ~f t in
+            Ok (t, name))
+          |> Nonempty_list.to_list
+          |> Or_error.all
+        in
+        (match Nonempty_list.of_list tabs with
+         | Some tabs -> Ok { t with config = Tabbed { current_tab; tabs } }
+         | None -> Or_error.error_s [%message "Tabbed panel has no tabs"])
     ;;
 
     let rec to_V1 (t : 'a t) : 'a V1.t =
@@ -518,4 +601,34 @@ let set_tab_titles t titles =
 
 let create_children = List.zip_exn
 let map = Stable.Latest.map
+let map' = Stable.Latest.map'
+let map_or_error = Stable.Latest.map_or_error
 let fold = Stable.Latest.fold
+let fold' = Stable.Latest.fold'
+
+let fold_compare ~init ~compare ~additions ~deletions a b =
+  let collect t = fold' t ~init:[] ~f:(fun acc node -> node :: acc) |> List.rev in
+  let a_nodes = collect a in
+  let b_nodes = collect b in
+  let b_by_id =
+    List.fold b_nodes ~init:Panel_id.Map.empty ~f:(fun map node ->
+      Map.set map ~key:node.panel_id ~data:node)
+  in
+  let a_ids =
+    List.fold a_nodes ~init:Panel_id.Set.empty ~f:(fun set node ->
+      Set.add set node.panel_id)
+  in
+  let acc =
+    List.fold a_nodes ~init ~f:(fun acc a_node ->
+      match Map.find b_by_id a_node.panel_id with
+      | Some b_node -> compare a_node b_node acc
+      | None -> acc)
+  in
+  let deleted =
+    List.filter a_nodes ~f:(fun node -> not (Map.mem b_by_id node.panel_id))
+  in
+  let added = List.filter b_nodes ~f:(fun node -> not (Set.mem a_ids node.panel_id)) in
+  let acc = deletions deleted acc in
+  let acc = additions added acc in
+  acc
+;;

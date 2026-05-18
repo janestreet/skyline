@@ -15,7 +15,7 @@ let view
   ~close
   ~confirm
   =
-  [%html
+  [%html.jsx
     {|
       <Skyline_dialog_v2.view
         ?test_selector
@@ -137,7 +137,7 @@ module Deprecated = struct
         | `Unavailable (Some reason) | `Unauthorized reason -> Some reason
         | _ -> None
       in
-      [%html
+      [%html.jsx
         {|
           <Skyline_dialog_v2.Content.fragment>
             <Skyline_dialog_v2.Section.separator />
@@ -168,5 +168,5 @@ module Deprecated = struct
 end
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

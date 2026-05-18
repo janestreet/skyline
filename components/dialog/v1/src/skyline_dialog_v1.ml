@@ -9,7 +9,7 @@ module Position = struct
   [@@deriving sexp_of, compare, equal]
 end
 
-module Restore_focus_on_close = Bonsai_web_ui_toplayer.Restore_focus_on_close
+module Restore_focus_on_close = Bonsai_web_themed_toplayer.Restore_focus_on_close
 
 module Style = struct
   let dialog (position : Position.t) =
@@ -53,7 +53,7 @@ let close_on_click_outside_toplayer close_on_click_outside =
     (* Any popovers below the modal are inert and unclickable, so if a popover can be
        clicked, it is on top of the modal, and probably shouldn't cause the modal to
        close. *)
-    Bonsai_web_ui_toplayer.Close_on_click_outside.Yes_unless_target_is_popover
+    Bonsai_web_themed_toplayer.Close_on_click_outside.Yes_unless_target_is_popover
   else No
 ;;
 
@@ -70,7 +70,7 @@ let component
   =
   let close_on_click_outside = close_on_click_outside_toplayer close_on_click_outside in
   let autoclose =
-    Bonsai_web_ui_toplayer.Autoclose.create
+    Bonsai_web_themed_toplayer.Autoclose.create
       ~close_on_click_outside
       ~close_on_esc
       ~close
@@ -87,12 +87,12 @@ let component
     let%arr padding_attr in
     padding_attr :: [ Bonsai_web.Test_selector.attr_of_opt test_selector ]
   in
-  Bonsai_web_ui_toplayer.Modal.always_open
+  Bonsai_web_themed_toplayer.Modal.always_open
     ~extra_attrs
     ~config:
       (`This_one
         (let%arr position in
-         { Bonsai_web_ui_toplayer.Modal.Config.modal_attrs = Style.dialog position }))
+         { Bonsai_web_themed_toplayer.Modal.Config.modal_attrs = Style.dialog position }))
     ~autoclose
     ~overflow_auto_wrapper:(return false)
     ?restore_focus_on_close
@@ -162,17 +162,18 @@ let modal ~position ~is_open ~close ~content graph =
   let%sub () =
     match%sub is_open with
     | Some input ->
-      Bonsai_web_ui_toplayer.Modal.always_open
+      Bonsai_web_themed_toplayer.Modal.always_open
         ~config:
           (`This_one
             (let%arr position in
-             { Bonsai_web_ui_toplayer.Modal.Config.modal_attrs = Style.dialog position }))
+             { Bonsai_web_themed_toplayer.Modal.Config.modal_attrs = Style.dialog position
+             }))
         ~autoclose:
-          (Bonsai_web_ui_toplayer.Autoclose.create
+          (Bonsai_web_themed_toplayer.Autoclose.create
              ~close_on_click_outside:
-               (return Bonsai_web_ui_toplayer.Close_on_click_outside.No)
+               (return Bonsai_web_themed_toplayer.Close_on_click_outside.No)
              ~close_on_right_click_outside:
-               (return Bonsai_web_ui_toplayer.Close_on_click_outside.No)
+               (return Bonsai_web_themed_toplayer.Close_on_click_outside.No)
              ~close_on_esc:(return true)
              ~close
              graph)

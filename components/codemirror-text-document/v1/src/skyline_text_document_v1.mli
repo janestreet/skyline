@@ -2,7 +2,7 @@ open! Core
 open! Bonsai_web
 
 module Language : sig
-  type t = Bonsai_web_ui_codemirror_read_only.Language.t =
+  type t = Bonsai_web_codemirror_read_only.Language.t =
     | Plaintext
     | OCaml
     | Diff

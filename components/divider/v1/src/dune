@@ -1,6 +1,7 @@
 (library
  (name skyline_divider_v1)
  (public_name skyline.divider_v1)
- (libraries bonsai bonsai_web core virtual_dom.css_gen skyline_theme_v1)
+ (libraries bonsai_web core virtual_dom.css_gen private_skyline_prelude
+   skyline_tokens_v2)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_css ppx_html ppx_jane)))

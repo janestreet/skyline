@@ -1,8 +1,8 @@
 open! Core
 open! Bonsai_web
-open Bonsai_web_ui_partial_render_table_styling
+open Bonsai_web_partial_render_table_styling
 
-let style ?(padding = `Px 4) () : Bonsai_web_ui_partial_render_table_styling.t =
+let style ?(padding = `Px 4) () : Bonsai_web_partial_render_table_styling.t =
   create
     { colors =
         { page_bg = Skyline_theme_v1.surface

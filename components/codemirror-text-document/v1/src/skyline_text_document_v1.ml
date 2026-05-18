@@ -4,7 +4,7 @@ open! Bonsai.Let_syntax
 open Gen_js_api
 
 module Language = struct
-  type t = Bonsai_web_ui_codemirror_read_only.Language.t =
+  type t = Bonsai_web_codemirror_read_only.Language.t =
     | Plaintext
     | OCaml
     | Diff
@@ -55,7 +55,12 @@ module Language = struct
     then Xml
     else if is_suffix ".fs"
     then FSharp
-    else if is_suffix ".ml" || is_suffix ".mli" || is_suffix ".mlt"
+    else if is_suffix ".ml"
+            || is_suffix ".mli"
+            || is_suffix ".mlt"
+            || is_suffix ".ud"
+            || is_suffix ".udv"
+            || is_suffix ".udl"
     then OCaml
     else if is_suffix ".patch"
     then Diff
@@ -172,7 +177,7 @@ let component'
   let theme =
     match%arr Skyline_entrypoint.theme graph with
     | Dark | Vscode { is_dark = true } ->
-      Bonsai_web_ui_codemirror_read_only.Theme.Vscode_dark
+      Bonsai_web_codemirror_read_only.Theme.Vscode_dark
     | Light | Vscode { is_dark = false } -> Vscode_light
   in
   match%sub Bonsai.transpose_opt diff with
@@ -210,7 +215,7 @@ let component'
     (* Note: We skip [line_wrapping] for the side-by-side diff since it might cause lines
        to be miss-aligned between the two panels. *)
     let left_codemirror =
-      Bonsai_web_ui_codemirror_read_only.make
+      Bonsai_web_codemirror_read_only.make
         ~extension:left_extension
         ~print_full_document
         ~line_numbers
@@ -220,7 +225,7 @@ let component'
         ~theme
         original
     and right_codemirror =
-      Bonsai_web_ui_codemirror_read_only.make
+      Bonsai_web_codemirror_read_only.make
         ~extension:right_extension
         ~print_full_document
         ~line_numbers
@@ -261,7 +266,7 @@ let component'
     and language
     and document
     and print_full_document in
-    Bonsai_web_ui_codemirror_read_only.make
+    Bonsai_web_codemirror_read_only.make
       ~extension
       ~line_numbers
       ~line_wrapping

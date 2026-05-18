@@ -26,7 +26,8 @@ module Single_data = struct
     { test_selector : Test_selector.t option
     ; config_attrs : Attr.t list (* User-provided styling attrs *)
     ; icon : Bonsai_web_icon.t option
-    ; children : size:Skyline_size.t -> Vdom.Node.t list
+    ; suffix : Vdom.Node.t option
+    ; children : Vdom.Node.t list
     }
 end
 
@@ -59,6 +60,7 @@ module Styles = struct
           .content_wrapper {
             display: grid;
             grid-template-columns: auto 1fr auto;
+            column-gap: %{Classes.spacing 1.#Css_gen.Length};
 
             .row {
               align-items: center;
@@ -67,9 +69,21 @@ module Styles = struct
               grid-template-columns: subgrid;
             }
 
+            .row_xs {
+              --icon-size: 12px;
+            }
+            .row_sm {
+              --icon-size: 14px;
+            }
+            .row_md {
+              --icon-size: 16px;
+            }
+            .row_lg {
+              --icon-size: 18px;
+            }
+
             .icon_left {
               grid-column: 1;
-              margin-right: %{Classes.spacing 1.#Css_gen.Length};
             }
 
             .row_content_wrapper {
@@ -81,30 +95,22 @@ module Styles = struct
               justify-content: space-between;
             }
 
-            .icon_right {
+            .suffix_wrapper {
+              display: flex;
+              align-items: center;
+              justify-content: flex-end;
               grid-column: 3;
-              margin-left: %{Classes.spacing 1.#Css_gen.Length};
             }
 
             .full_bleed {
               grid-column: 1 / -1;
-            }
-
-            /* Remove left margin when row has no left icon */
-            .row:not(:has(> .icon_left)) .icon_left {
-              margin-right: 0;
-            }
-
-            /* Remove right margin when row has no right icon */
-            .row:not(:has(> .icon_right)) .icon_right {
-              margin-left: 0;
             }
           }
         }
       |}]
 
   let row_base ~size =
-    let text, padding =
+    let text, padding, row_size =
       match size with
       | `Xs ->
         ( Classes.text_2xs
@@ -112,31 +118,32 @@ module Styles = struct
             padding: %{Classes.spacing 0.25#Css_gen.Length}
               %{Classes.spacing 0.5#Css_gen.Length};
           |}
-        )
+        , row_xs )
       | `Sm ->
         ( Classes.text_xs
         , {%css|
             padding: %{Classes.spacing 0.5#Css_gen.Length}
               %{Classes.spacing 1.#Css_gen.Length};
           |}
-        )
+        , row_sm )
       | `Md ->
         ( Classes.text_sm
         , {%css|
             padding: %{Classes.spacing 1.#Css_gen.Length}
               %{Classes.spacing 2.#Css_gen.Length};
           |}
-        )
+        , row_md )
       | `Lg ->
         ( Classes.text_base
         , {%css|
             padding: %{Classes.spacing 2.#Css_gen.Length}
               %{Classes.spacing 4.#Css_gen.Length};
           |}
-        )
+        , row_lg )
     in
     Attr.many
       [ row
+      ; row_size
       ; text
       ; padding
       ; {%css|
@@ -218,14 +225,6 @@ module Styles = struct
     Attr.many
       [ full_bleed; Classes.border_default; {%css|margin: %{margin#Css_gen.Length} 0;|} ]
   ;;
-
-  let icon_size ~size =
-    match size with
-    | `Xs -> `Px 12
-    | `Sm -> `Px 14
-    | `Md -> `Px 16
-    | `Lg -> `Px 18
-  ;;
 end
 
 module Scroll_selectors = struct
@@ -233,15 +232,28 @@ module Scroll_selectors = struct
   let selector ~path_id ~key = {%string|#%{path_id} [data-menu-item="%{key}"]|}
 end
 
-let maybe_icon ?(attrs = []) ~size ~icon () =
+let maybe_icon ?(attrs = []) ~icon () =
   match icon with
-  | Some icon -> {%html|<Bonsai_web_icon.view *{attrs} ~size ~icon />|}
+  | Some icon ->
+    {%html.jsx|
+      <Bonsai_web_icon.view
+        *{attrs}
+        ~size:%{(`Var Styles.For_referencing.icon_size)}
+        ~icon
+      />
+    |}
+  | None -> Node.none
+;;
+
+let maybe_suffix ~suffix () =
+  match suffix with
+  | Some suffix -> {%html|<div %{Styles.suffix_wrapper}>%{suffix}</div>|}
   | None -> Node.none
 ;;
 
 (* Render an item by combining config with state *)
 let render_item (config : Single_data.t) ~state_attrs ~is_active ~is_disabled ~size =
-  let { Single_data.children; config_attrs; icon; test_selector } = config in
+  let { Single_data.children; config_attrs; icon; suffix; test_selector } = config in
   let is_active_attr =
     if is_active then Attr.create "data-test-is-active" "true" else Attr.empty
   in
@@ -254,43 +266,45 @@ let render_item (config : Single_data.t) ~state_attrs ~is_active ~is_disabled ~s
     ; is_active_attr
     ]
   in
-  let children =
-    [ maybe_icon ~attrs:[ Styles.icon_left ] ~size:(Styles.icon_size ~size) ~icon ()
-    ; {%html|<div %{Styles.row_content_wrapper}>*{children ~size}</div>|}
-    ]
-  in
-  {%html|<button *{attrs}>*{children}</button>|}
+  {%html.jsx|
+    <button *{attrs}>
+      <%{maybe_icon} %{Styles.icon_left} ~icon />
+      <div %{Styles.row_content_wrapper}>*{children}</div>
+      <%{maybe_suffix} ~suffix />
+    </button>
+  |}
 ;;
 
-let item ?test_selector ?(attrs = []) ?(disabled = false) ?icon ~key ~on_click children =
+let item
+  ?test_selector
+  ?(attrs = [])
+  ?(disabled = false)
+  ?icon
+  ?suffix
+  ~key
+  ~on_click
+  children
+  =
   Bonsai_web_menu.Item.Single
     { key
     ; disabled
     ; on_click
     ; item =
         Item_data.Single
-          { Single_data.test_selector
-          ; config_attrs = attrs
-          ; icon
-          ; children =
-              (fun ~size:_
-                (* Size is ignored because this is content from userland and has no use
-                   for the ~size arg. *) ->
-                children)
-          }
+          { Single_data.test_selector; config_attrs = attrs; icon; suffix; children }
     }
 ;;
 
 let separator ?(attrs = []) () =
   Bonsai_web_menu.Item.Inert
-    (Item_data.Inert (fun ~size -> {%html|<hr %{Styles.hr ~size} *{attrs} />|}))
+    (Item_data.Inert (fun ~size -> {%html.jsx|<hr %{Styles.hr ~size} *{attrs} />|}))
 ;;
 
 let title ?test_selector ?(attrs = []) children =
   Bonsai_web_menu.Item.Inert
     (Item_data.Inert
        (fun ~size ->
-         {%html|
+         {%html.jsx|
            <div
              %{Styles.inert_title ~size}
              *{attrs}
@@ -305,18 +319,7 @@ module Sub_menu = struct
   module Trigger = struct
     type t = (unit, Item_data.t) Bonsai_web_menu.Item.t
 
-    let create ?test_selector ?(attrs = []) ?icon children =
-      let submenu_trigger_children ~size =
-        [ {%html|<div %{Styles.row_content_wrapper}>*{children}</div>|}
-        ; {%html|
-            <Bonsai_web_icon.view
-              ~attrs:%{[ Styles.icon_right ]}
-              ~size:%{(Styles.icon_size ~size)}
-              ~icon:%{Lucide.chevron_right}
-            />
-          |}
-        ]
-      in
+    let create ?test_selector ?(attrs = []) ?icon ?suffix children =
       Bonsai_web_menu.Item.Single
         { key =
             ""
@@ -329,7 +332,15 @@ module Sub_menu = struct
               { Single_data.test_selector
               ; config_attrs = attrs
               ; icon
-              ; children = (fun ~size -> submenu_trigger_children ~size)
+              ; suffix =
+                  Some
+                    {%html.jsx|
+                      <>
+                        %{Option.value ~default:Node.none suffix}
+                        <%{maybe_icon} ~icon:%{(Some Lucide.chevron_right)} />
+                      </>
+                    |}
+              ; children
               }
         }
     ;;
@@ -355,9 +366,9 @@ module Sub_menu = struct
   ;;
 end
 
-let create ?(attrs = []) items =
+let create ?test_selector ?(attrs = []) items =
   let items = List.map items ~f:(fun item -> item) in
-  { items; wrapper_attrs = attrs }
+  { items; wrapper_attrs = Test_selector.attr_of_opt test_selector :: attrs }
 ;;
 
 let on_keydown
@@ -519,7 +530,7 @@ let rec contents'
         assert false)
   in
   let attrs = [ Attr.many config_attrs; Styles.content_wrapper ~size; Attr.id path_id ] in
-  {%html|<div *{attrs}>*{children}</div>|}
+  {%html.jsx|<div *{attrs}>*{children}</div>|}
 ;;
 
 module Expert = struct
@@ -613,5 +624,5 @@ module Expert = struct
 end
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

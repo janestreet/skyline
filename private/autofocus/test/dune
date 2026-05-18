@@ -1,7 +1,0 @@
-(library
- (name private_skyline_autofocus_test)
- (public_name skyline.private_autofocus_test)
- (libraries async_kernel bonsai_web core js_of_ocaml bonsai_web_test.jsdom
-   private_skyline_autofocus)
- (preprocess
-  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx ppx_with)))

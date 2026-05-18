@@ -74,6 +74,12 @@ module Style = struct
           gap: %{Classes.spacing 2.#Css_gen.Length};
         }
 
+        .inner-border {
+          /* We use [outline] instead of [border] because [Colors.Border.default] has an alpha channel and we want it to composite with the background. */
+          outline: 1px solid %{Colors.Border.default#Css_gen.Color};
+          outline-offset: -1px;
+        }
+
         .loading-bar {
           height: 2px;
           position: absolute;
@@ -136,7 +142,7 @@ let loading_bar ~intent =
     | `Danger -> Classes.text_on_filled_alt_danger
     | `Warning -> Classes.text_on_filled_alt_warning
   in
-  [%html {|<div %{Style.loading_bar} style="pointer-events: none" %{color}></div>|}]
+  [%html.jsx {|<div %{Style.loading_bar} style="pointer-events: none" %{color}></div>|}]
 ;;
 
 let view ?test_selector ?(attrs = []) ?(size = `Md) ?(intent = `Primary) ?loading children
@@ -147,12 +153,13 @@ let view ?test_selector ?(attrs = []) ?(size = `Md) ?(intent = `Primary) ?loadin
     | `Indeterminate -> Some (loading_bar ~intent)
   in
   let children = List.map children ~f:(fun child -> child size) in
-  [%html
+  [%html.jsx
     {|
       <div
         style="position: relative; overflow: hidden"
-        *{Classes.[flex; flex_col; bg_one; border 1; border_default; rounded_md]}
+        *{Classes.[flex; flex_col; bg_one; rounded_md]}
         %{Style.container_attrs intent}
+        %{Style.inner_border}
         %{Bonsai.Test_selector.attr_of_opt test_selector}
         *{attrs}
         %{Classes.data_skyline_component "banner"}
@@ -170,7 +177,7 @@ let text_size : Skyline_size.t -> Skyline_text_v2.Size.t = function
 module Header = struct
   module T = struct
     let view' ?test_selector ?(attrs = []) children =
-      [%html
+      [%html.jsx
         {|
           <div
             %{Bonsai.Test_selector.attr_of_opt test_selector}
@@ -186,7 +193,7 @@ module Header = struct
 
   let view ?test_selector ?(attrs = []) children : Content.t =
     fun size ->
-    [%html
+    [%html.jsx
       {|
         <T.view'
           ?test_selector
@@ -201,7 +208,7 @@ module Header = struct
 
   let text ?test_selector ?(attrs = []) contents : Content.t =
     fun size ->
-    [%html
+    [%html.jsx
       {|
         <T.view'
           ?test_selector
@@ -223,7 +230,7 @@ module Header = struct
   ;;
 
   let icon ?test_selector ?(attrs = []) ~icon () =
-    [%html
+    [%html.jsx
       {|
         <Bonsai_web_icon.view
           ~size:%{`Raw "calc(1em + 2px)"}
@@ -235,13 +242,13 @@ module Header = struct
       |}]
   ;;
 
-  let spacer () = [%html {|<div style="flex: 1"></div>|}]
+  let spacer () = [%html.jsx {|<div style="flex: 1"></div>|}]
 end
 
 module Section = struct
   module T = struct
     let view' ?test_selector ?(attrs = []) children =
-      [%html
+      [%html.jsx
         {|
           <section
             *{Style.[body]}
@@ -257,7 +264,7 @@ module Section = struct
 
   let content ?test_selector ?(attrs = []) children : Content.t =
     fun size ->
-    [%html
+    [%html.jsx
       {|
         <T.view' ?test_selector %{Style.padding size} *{attrs}>
           *{children}
@@ -267,7 +274,7 @@ module Section = struct
 
   let text ?test_selector ?(attrs = []) contents : Content.t =
     fun size ->
-    [%html
+    [%html.jsx
       {|
         <T.view' ?test_selector %{Style.padding size} *{attrs}>
           <Skyline_text_v2.view style="display: contents" ~size:%{text_size size}>
@@ -279,5 +286,5 @@ module Section = struct
 end
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

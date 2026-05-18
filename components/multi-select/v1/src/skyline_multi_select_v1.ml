@@ -254,7 +254,7 @@ let component
     and suggestions =
       let track_width =
         let%arr set_input_width in
-        Bonsai_web_ui_element_size_hooks.Size_tracker.on_change (fun dims ->
+        Bonsai_web_element_size_hooks.Size_tracker.on_change (fun dims ->
           set_input_width dims.border_box.width)
       in
       match%sub suggestion_list with

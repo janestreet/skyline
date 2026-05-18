@@ -37,7 +37,7 @@ module Style = struct
 end
 
 module Position = struct
-  type t = Bonsai_web_ui_toplayer.Position.t =
+  type t = Bonsai_web_themed_toplayer.Position.t =
     | Auto
     | Top
     | Bottom
@@ -47,7 +47,7 @@ module Position = struct
 end
 
 module Alignment = struct
-  type t = Bonsai_web_ui_toplayer.Alignment.t =
+  type t = Bonsai_web_themed_toplayer.Alignment.t =
     | Center
     | Start
     | End
@@ -128,11 +128,11 @@ let component
     in
     let close_on_click_outside =
       if%arr close_on_click_outside
-      then Bonsai_web_ui_toplayer.Close_on_click_outside.Yes
+      then Bonsai_web_themed_toplayer.Close_on_click_outside.Yes
       else No
     in
     let autoclose =
-      Bonsai_web_ui_toplayer.Autoclose.create
+      Bonsai_web_themed_toplayer.Autoclose.create
         ~close
         ~close_on_click_outside
         ~close_on_right_click_outside:close_on_click_outside
@@ -141,7 +141,7 @@ let component
     in
     match%sub is_open with
     | true ->
-      Bonsai_web_ui_toplayer.Popover.always_open
+      Bonsai_web_themed_toplayer.Popover.always_open
         ~extra_attrs
         ~autoclose
         ~position

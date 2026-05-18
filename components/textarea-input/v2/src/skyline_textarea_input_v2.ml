@@ -97,7 +97,7 @@ let content
       | Some placeholder -> Attr.placeholder placeholder
     in
     let maybe_disabled_attr = if disabled then Classes.disabled else Attr.empty in
-    {%html|
+    {%html.jsx|
       <textarea
         %{Attr.value_prop value}
         *{input_attrs}
@@ -109,5 +109,5 @@ let content
 ;;
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

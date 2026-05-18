@@ -177,7 +177,7 @@ let make_show (type a) ~(init_toast : a) ~timeout ~toast_content graph =
   let%sub () =
     match%sub is_open with
     | true ->
-      Bonsai_web_ui_toplayer.Popover.always_open_css
+      Bonsai_web_themed_toplayer.Popover.always_open_css
         ~extra_attrs
         ~content:(fun _ -> toast_content ~close current)
         graph;

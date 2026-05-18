@@ -35,5 +35,5 @@ end
     prefer to use color tokens based on intent unless you simply need a list of different
     colors. *)
 
-(** \@@inline *)
+(** @@inline *)
 include module type of Private_skyline_theme.Colors.Constants

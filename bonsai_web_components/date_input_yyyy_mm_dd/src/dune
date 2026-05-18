@@ -1,0 +1,7 @@
+(library
+ (name bonsai_web_contrib_date_input_yyyy_mm_dd)
+ (public_name skyline.bonsai_web_components.date_input_yyyy_mm_dd)
+ (libraries bonsai bonsai.extra bonsai_web browser.extra core js_of_ocaml
+   virtual_dom.input_widgets virtual_dom.keyboard)
+ (preprocess
+  (pps bonsai.ppx_bonsai ppx_jane ppx_css js_of_ocaml-ppx ppx_html)))

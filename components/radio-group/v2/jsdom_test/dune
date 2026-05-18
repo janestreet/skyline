@@ -1,8 +1,0 @@
-(library
- (name skyline_radio_group_v2_jsdom_test)
- (public_name skyline.radio_group_v2_jsdom_test)
- (libraries async_kernel bonsai_test bonsai_web bonsai_web_test core
-   expect_test_helpers_core bonsai_web_test.jsdom skyline_radio_group_v2)
- (preprocess
-  (pps ppx_jane bonsai.ppx_bonsai js_of_ocaml-ppx ppx_html ppx_with))
- (flags :standard -alert -skyline_beta))

@@ -13,6 +13,6 @@ val incrementally
         -> Incr_map.Instrumentation.t)
   -> 'a Nonempty_string_list.Map.t
   -> ( Nonempty_string_list.t
-       , (Nonempty_string_list.t, 'a) Bonsai_web_ui_tree_table.Row.t
+       , (Nonempty_string_list.t, 'a) Bonsai_web_contrib_tree_table.Row.t
        , String.comparator_witness Nonempty_list.comparator_witness )
        Map.t

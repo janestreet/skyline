@@ -321,28 +321,28 @@ module Style = struct
             --size: 10px;
 
             &.has_one_child:has(> .icon) {
-              padding: 4px;
+              padding: 3px;
             }
           }
           .sm {
             --size: 12px;
 
             &.has_one_child:has(> .icon) {
-              padding: 6px;
+              padding: 5px;
             }
           }
           .md {
             --size: 12px;
 
             &.has_one_child:has(> .icon) {
-              padding: 8px;
+              padding: 7px;
             }
           }
           .lg {
             --size: 16px;
 
             &.has_one_child:has(> .icon) {
-              padding: 8px;
+              padding: 7px;
             }
           }
         |}]
@@ -366,7 +366,7 @@ end
 
 module Icon = struct
   let view ?(attrs = []) ~icon () =
-    {%html|
+    {%html.jsx|
       <Bonsai_web_icon.view
         *{[ Style.Icon.Stylesheet.icon; Attr.many attrs ]}
         ~size:%{(`Var Style.Icon.Stylesheet.For_referencing.size)}
@@ -381,7 +381,7 @@ let href_and_target href target =
 ;;
 
 let spinner () =
-  {%html|
+  {%html.jsx|
     <span %{Style.Loading.spinner_animation}>
       <Icon.view ~icon:%{Lucide.loader_circle} />
     </span>
@@ -390,16 +390,11 @@ let spinner () =
 
 let loading_overlay children =
   match Am_running_how_js.am_running_how with
-  | `Node_test | `Node_jsdom_test -> {%html|Loading...|}
+  | `Node_test | `Node_jsdom_test -> {%html.jsx|Loading...|}
   | `Browser | `Browser_test | `Browser_benchmark | `Node | `Node_benchmark ->
-    {%html|
-      <>
-        <span %{Style.Loading.container}>
-          <%{spinner} />
-          Loading
-        </span>
-        <span %{Style.Loading.hidden_children}>*{children}</span>
-      </>
+    {%html.jsx|
+      <><span %{Style.Loading.container}><%{spinner} />#{" Loading "}</span
+        ><span %{Style.Loading.hidden_children}>*{children}</span></>
     |}
 ;;
 
@@ -407,13 +402,7 @@ let with_external_link_indicator contents =
   match Am_running_how_js.am_running_how with
   | `Node_test | `Node_jsdom_test -> contents
   | `Browser | `Browser_test | `Browser_benchmark | `Node | `Node_benchmark ->
-    [ {%html|
-        <>
-          *{contents}
-          <Icon.view ~icon:%{Lucide.external_link} />
-        </>
-      |}
-    ]
+    contents @ [ {%html.jsx|<Icon.view ~icon:%{Lucide.external_link} />|} ]
 ;;
 
 let view
@@ -443,7 +432,7 @@ let view
         ~alignment:Center
         (Node.text text)
   in
-  let button_attrs =
+  let button_attrs ~children =
     [ Test_selector.attr_of_opt test_selector
     ; Style.button_base
     ; Style.size_styles size ~rounded ~slim
@@ -462,16 +451,12 @@ let view
       | false, _
       | true, (This_tab | Iframe_parent_or_this_tab | Iframe_root_parent_or_this_tab) ->
         children
-      | true, New_tab_or_window ->
-        {%html|
-          <%{with_external_link_indicator}
-            >*{children}</>
-        |}
+      | true, New_tab_or_window -> with_external_link_indicator children
     in
-    {%html|<a *{[href_and_target url target; Attr.many button_attrs]}>*{children}</a>|}
+    {%html.jsx|<a *{[href_and_target url target; Attr.many (button_attrs ~children)]}>*{children}</a>|}
   | _ ->
     let on_click = if disabled then Effect.Ignore else on_click in
-    {%html|<button *{ [Attr.on_click (fun _ -> on_click); Attr.many button_attrs]}>*{children}</button>|}
+    {%html.jsx|<button *{ [Attr.on_click (fun _ -> on_click); Attr.many (button_attrs ~children)]}>*{children}</button>|}
 ;;
 
 module Loading_state = struct
@@ -497,7 +482,6 @@ end
 
 let component
   ?test_selector
-  ?(confirm = Bonsai.return false)
   ?(disabled = Bonsai.return false)
   ?(loading = Bonsai.return Loading.No)
   ?(attrs = Bonsai.return [])
@@ -513,7 +497,6 @@ let component
   ~on_click
   graph
   =
-  let _ = confirm in
   let tooltip = Bonsai.transpose_opt tooltip in
   let test_selector = Bonsai.transpose_opt test_selector in
   let tooltip_position = Bonsai.transpose_opt tooltip_position in
@@ -559,5 +542,5 @@ let component
 let group_style = Vdom.Attr.create "data-skyline-button-group" ""
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

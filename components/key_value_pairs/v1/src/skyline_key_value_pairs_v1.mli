@@ -1,11 +1,3 @@
-[@@@alert
-  skyline_beta
-    {|
-This component is currently in a beta phase. Its styling may change in breaking ways.
-If you're interested in using this component please reach out to Skyline devs.
-We appreciate your enthusiasm. Thanks.
-|}]
-
 open! Core
 open! Bonsai_web
 
@@ -20,11 +12,13 @@ open! Bonsai_web
     {b Example}
 
     {[
-      Skyline_key_value_pairs_v1.view
-        [ Skyline_key_value_pairs_v1.key "Key 1", %{%html|Value 1|}
-        ; Skyline_key_value_pairs_v1.key "Key 2", %{%html|Value 2|}
-        ; Skyline_key_value_pairs_v1.key "Key 3", %{%html|Value 3|}
-        ]
+      {%html|
+        <Skyline_key_value_pairs_v1.view>
+          <Skyline_key_value_pairs_v1.Pair.text key="Key 1">Value 1</>
+          <Skyline_key_value_pairs_v1.Pair.text key="Key 2">Value 2</>
+          <Skyline_key_value_pairs_v1.Pair.text key="Key 3">Value 3</>
+        </>
+      |}
     ]} *)
 
 (** [Layout] whether the key/values are aligned.
@@ -54,22 +48,31 @@ end
 
 (** A [Pair.t] is a (key x value) pair *)
 module Pair : sig
-  type t = Vdom.Node.t * Vdom.Node.t
+  type t
+
+  (** [text] creates key-value-pair, inheriting the [size] from the container.
+
+      - [icon] optionally renders an icon
+      - [key] is the text to render, formatted using [size]
+      - [children] are the values, formatted using [size] *)
+  val text : ?icon:Bonsai_web_icon.t -> key:string -> Vdom.Node.t list -> t
+
+  (** [content] allows custom content in the key and value without any extra styling.
+
+      - [key] is the key to render
+      - [children] are the values *)
+  val content : key:Vdom.Node.t -> Vdom.Node.t list -> t
 end
 
-(** [key] is a helper for creating a "key" in a "key-value-pair" that is some text with an
-    (optional) icon. *)
-val key : ?icon:Bonsai_web_icon.t -> string -> Vdom.Node.t
+(** [view] arranges your key-value-pairs in a grid.
 
-(** [view] is a tiny helper that will arrange your components on a grid depending on how
-    you want to accomodate things.
-
-    - [layout] defaults to [Layout.Two_columns].
-    - [gap] is the gap that will exist in between the pairs. *)
+    - [size] sets the gap that will exist in between the pairs and the size of content
+      created with [Pair.text].
+    - [layout] defaults to [Layout.Two_columns]. *)
 val view
   :  ?attrs:Vdom.Attr.t list
+  -> ?size:Skyline_size.t
   -> ?layout:Layout.t
-  -> ?gap:Skyline_size.t
   -> Pair.t list
   -> Vdom.Node.t
 

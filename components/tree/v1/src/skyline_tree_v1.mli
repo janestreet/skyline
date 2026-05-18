@@ -89,7 +89,15 @@ end
     map.
 
     [segment] is used to render rows in the tree that don't have a corresponding map
-    element i.e. rows that only exist to structure the tree. *)
+    element i.e. rows that only exist to structure the tree.
+
+    - [has_external_children] indicates that an item has children not present in the map.
+      Items for which [has_external_children path item] returns [true] are rendered as
+      collapsible parent nodes (with a caret) even if they have no children in the map.
+      This is only consulted for items that have no children in the map; items that
+      already have children are always rendered as parents regardless. This is useful when
+      children are loaded lazily or filtered server-side. Note that external children
+      can't be considered in [search]-based fuzzy filtering and ordering. *)
 val component
   :  ?collapsed:Path.Set.t Bonsai.t * (Path.t -> unit Effect.t) Bonsai.t
   -> ?layout:Layout.t Bonsai.t
@@ -104,6 +112,7 @@ val component
   -> ?decoration:(Path.t -> 'a option -> Decoration.t)
   -> ?alternating_row_background:bool
   -> ?disable_keyboard_navigation:bool
+  -> ?has_external_children:(Path.t -> 'a -> bool)
   -> ?segment:
        (Path.t Bonsai.t
         -> Path.Segment.t Bonsai.t

@@ -155,7 +155,7 @@ module Content = struct
 end
 
 let view ?test_selector ?(size = `Md) ?(attrs = []) children =
-  [%html
+  [%html.jsx
     {|
       <dialog
         open
@@ -181,7 +181,7 @@ module Section = struct
     ~is_first
     ~is_last
     =
-    [%html
+    [%html.jsx
       {|
         <section
           %{Style.section ~is_first ~is_last ~close_button_present ~scrollable ~full_bleed size}
@@ -254,7 +254,7 @@ module Close_button = struct
   let content ?test_selector ?(attrs = []) () ~close =
     Content.Close_button
       (fun ~size ->
-        [%html
+        [%html.jsx
           {|
             <Skyline_button_v2.view
               ?test_selector
@@ -272,5 +272,5 @@ module Close_button = struct
 end
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

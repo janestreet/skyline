@@ -3,20 +3,20 @@
  (public_name skyline)
  (preprocess
   (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css))
- (libraries bonsai.kernel_components.throttle
-   bonsai.kernel_components.wait_effect skyline_accordion_v1
-   skyline_banner_v1 skyline_button_v1 skyline_card_v2 skyline_checkbox_v1
-   skyline_chip_v2 skyline_confirm_guard_v1 skyline_context_menu_v1
-   skyline_copy_to_clipboard_v1 skyline_date_input_v1 skyline_dialog_v1
+ (libraries skyline_accordion_v2 skyline_alert_dialog_v2 skyline_banner_v2
+   skyline_button_v2 skyline_card_v2 skyline_checkbox_input_v2
+   skyline_chip_v2 skyline_confirm_dialog_v2 skyline_confirm_guard_v1
+   skyline_copy_to_clipboard_v1 skyline_date_input_v2 skyline_dialog_v2
    skyline_divider_v1 skyline_entrypoint skyline_error_view_v1
-   skyline_errors_v1 skyline_file_icon_v1 skyline_flex_v1 skyline_format_v1
-   skyline_fuzzy_match_v1 skyline_glimmer_v1 skyline_grayscale_v1
-   skyline_icon_v1 skyline_input_v1 skyline_intent
+   skyline_errors_v1 skyline_field_v2 skyline_file_icon_v1 skyline_flex_v1
+   skyline_format_v1 skyline_fuzzy_match_v1 skyline_glimmer_v1
+   skyline_icon_v1 skyline_input_v1 skyline_intent skyline_key_value_pairs_v1
    skyline_keyboard_shortcut_label_v1 skyline_keyboard_shortcut_v1
    skyline_loading_indicator_v1 skyline_loading_state_v1
-   skyline_log_output_v1 skyline_media_query_v1 skyline_multi_select_v1
-   skyline_optimistic_update_v1 skyline_panel_v1 skyline_placeholder_v1
-   skyline_popover_v2 skyline_select_input_v1 skyline_size skyline_split_v1
-   skyline_table_v1 skyline_tabs_v2 skyline_text_input_v1 skyline_text_v2
-   skyline_theme_v1 skyline_toast_v1 skyline_tokens_v2 skyline_tooltip_v2
-   skyline_tree_v1 skyline_typeahead_v1))
+   skyline_log_output_v1 skyline_media_query_v1 skyline_menu_v2
+   skyline_modal_v2 skyline_multi_select_v1 skyline_optimistic_update_v1
+   skyline_panel_v1 skyline_picker_v2 skyline_placeholder_v1
+   skyline_popover_v2 skyline_size skyline_split_v1 skyline_switch_input_v2
+   skyline_table_v1 skyline_tabs_v2 skyline_text_input_v2 skyline_text_v2
+   skyline_textarea_input_v2 skyline_theme_v1 skyline_time_input_v2
+   skyline_toast_v1 skyline_tokens_v2 skyline_tooltip_v2 skyline_tree_v1))

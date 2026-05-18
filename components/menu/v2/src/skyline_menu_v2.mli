@@ -1,11 +1,3 @@
-[@@@alert
-  skyline_beta
-    {|
-This component is currently in a beta phase. Its styling may change in breaking ways.
-If you're interested in using this component please reach out to Skyline devs.
-We appreciate your enthusiasm. Thanks.
-|}]
-
 open! Core
 open! Bonsai_web
 
@@ -15,7 +7,7 @@ open! Bonsai_web
     {b Example}
 
     {[
-      let menu = Skyline_menu_v2.component graph in
+      let menu = Skyline_menu_v2.controller graph in
       let options =
         let%arr action_1 and action_2 in
         {%html|
@@ -64,6 +56,17 @@ module Alignment : sig
   [@@deriving sexp_of, equal, to_string]
 end
 
+module Open_at : sig
+  (** Determines where the menu popover is positioned when triggered.
+
+      - [Cursor] positions the menu at the cursor location (default for both [on_click]
+        and [on_contextmenu])
+      - [Anchor] positions the menu relative to the anchor element *)
+  type t =
+    | Anchor
+    | Cursor
+end
+
 module State : sig
   (** Determines the menu's current state.
       - [Closed] menu is not shown
@@ -89,7 +92,7 @@ type t = private
     - [?position] sets the popover position relative to the anchor (defaults to [Auto])
     - [?alignment] sets the popover alignment relative to the anchor (defaults to [Start])
     - [?state] allows controlling the menu state externally *)
-val component
+val controller
   :  ?size:Skyline_size.t Bonsai.t
   -> ?position:Position.t Bonsai.t
   -> ?alignment:Alignment.t Bonsai.t
@@ -99,19 +102,15 @@ val component
 
 (** Creates an [attr] that binds an [on_click] event to open the menu.
 
-    - [?position_at_cursor] when [true], positions the menu at the cursor location; when
-      [false], positions relative to the anchor element (default is [true]) *)
-val on_click : ?position_at_cursor:bool -> t -> options:Options.t Effect.t -> Vdom.Attr.t
+    - [?open_at] controls where the menu appears: [Cursor] positions it at the cursor
+      location, [Anchor] positions it relative to the anchor element (default is [Cursor]) *)
+val on_click : ?open_at:Open_at.t -> t -> options:Options.t Effect.t -> Vdom.Attr.t
 
 (** Creates an [attr] that binds an [on_contextmenu] (right-click) event to open the menu.
 
-    - [?position_at_cursor] when [true], positions the menu at the cursor location; when
-      [false], positions relative to the anchor element (default is [true]) *)
-val on_contextmenu
-  :  ?position_at_cursor:bool
-  -> t
-  -> options:Options.t Effect.t
-  -> Vdom.Attr.t
+    - [?open_at] controls where the menu appears: [Cursor] positions it at the cursor
+      location, [Anchor] positions it relative to the anchor element (default is [Cursor]) *)
+val on_contextmenu : ?open_at:Open_at.t -> t -> options:Options.t Effect.t -> Vdom.Attr.t
 
 module For_docs : sig
   val ml_filepath : string

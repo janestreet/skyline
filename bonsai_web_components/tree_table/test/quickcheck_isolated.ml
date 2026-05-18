@@ -16,10 +16,11 @@ let incrementally
     match map_instrumentation with
     | None -> Fn.id
     | Some instrumentation ->
-      Bonsai_web_ui_tree_table.map
+      Bonsai_web_contrib_tree_table.map
         ~instrumentation
         ~how_to_map:
-          (Bonsai_web_ui_tree_table.How_to_map.incrementally_with_nonincremental_fallback
+          (Bonsai_web_contrib_tree_table.How_to_map
+           .incrementally_with_nonincremental_fallback
              ?switch_from_incremental_to_nonincremental_at_this_depth:
                max_incremental_recursion_depth
              ~nonincremental:(fun ~key:_ ~data ~children:_ -> data)
@@ -28,11 +29,11 @@ let incrementally
   in
   let out =
     Incr.Var.watch var
-    |> Bonsai_web_ui_tree_table.map_to_tree
+    |> Bonsai_web_contrib_tree_table.map_to_tree
          ?instrumentation:map_to_tree_instrumentation
          (module String)
     |> instrumented_map
-    |> Bonsai_web_ui_tree_table.tree_to_map
+    |> Bonsai_web_contrib_tree_table.tree_to_map
          ?instrumentation:tree_to_map_instrumentation
          ?max_incremental_recursion_depth
          ~how_to_deal_with_nones:Remove_and_also_remove_descendants
@@ -50,7 +51,7 @@ let%expect_test "single stabilization" (* these were examples of inputs that fou
       features
       |> incrementally (module Util.Incr)
       |> Map.data
-      |> List.map ~f:Bonsai_web_ui_tree_table.Row.data
+      |> List.map ~f:Bonsai_web_contrib_tree_table.Row.data
     in
     let out_non_incr = nonincremental features in
     [%test_result: t list] out_incr ~expect:out_non_incr

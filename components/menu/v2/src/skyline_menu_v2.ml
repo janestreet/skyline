@@ -20,6 +20,12 @@ module Alignment = struct
   [@@deriving sexp_of, equal, to_string]
 end
 
+module Open_at = struct
+  type t =
+    | Anchor
+    | Cursor
+end
+
 module State = struct
   type t =
     | Closed
@@ -55,7 +61,7 @@ let position_if_pointer_type_present event =
     Some (~top, ~left))
 ;;
 
-let component
+let controller
   ?(size : Skyline_size.t Bonsai.t option)
   ?(position = Bonsai.return Position.Auto)
   ?(alignment = Bonsai.return Alignment.Start)
@@ -106,7 +112,7 @@ let is_ctrl_held event =
   Js_of_ocaml.Js.to_bool event##.ctrlKey
 ;;
 
-let menu_effect_of_event menu ~options ~event ~position_at_cursor =
+let menu_effect_of_event menu ~options ~event ~open_at =
   let effect event =
     if is_ctrl_held event
     then Effect.Ignore
@@ -124,8 +130,8 @@ let menu_effect_of_event menu ~options ~event ~position_at_cursor =
             ~bottom
             ~right
         in
-        match position_at_cursor with
-        | true ->
+        match open_at with
+        | Open_at.Cursor ->
           (match position_if_pointer_type_present event with
            | Some (~top, ~left) ->
              Bonsai_web_toplayer.Anchor.of_coordinate
@@ -133,7 +139,7 @@ let menu_effect_of_event menu ~options ~event ~position_at_cursor =
                ~x:left
                ~y:top
            | None -> anchor_of_target ())
-        | false -> anchor_of_target ()
+        | Open_at.Anchor -> anchor_of_target ()
       in
       let%bind.Effect options in
       menu.set_state (State.Opened_at_position (options, anchor)))
@@ -141,12 +147,11 @@ let menu_effect_of_event menu ~options ~event ~position_at_cursor =
   effect event
 ;;
 
-let on_click ?(position_at_cursor = true) menu ~options =
-  Attr.on_click (fun event ->
-    menu_effect_of_event menu ~options ~event ~position_at_cursor)
+let on_click ?(open_at = Open_at.Cursor) menu ~options =
+  Attr.on_click (fun event -> menu_effect_of_event menu ~options ~event ~open_at)
 ;;
 
-let on_contextmenu ?(position_at_cursor = true) menu ~options =
+let on_contextmenu ?(open_at = Open_at.Cursor) menu ~options =
   Attr.many
     [ (* We use `auxclick` to replicate the UX of the `contextmenu` event in a
          cross-platform way. The `contextmenu` event behaves differently across Linux and
@@ -163,11 +168,11 @@ let on_contextmenu ?(position_at_cursor = true) menu ~options =
         let is_ctrl_held = is_ctrl_held event in
         let only_right_click = event##.button = 2 in
         match is_ctrl_held, only_right_click with
-        | false, true -> menu_effect_of_event menu ~options ~event ~position_at_cursor
+        | false, true -> menu_effect_of_event menu ~options ~event ~open_at
         | _, _ -> Effect.Ignore)
     ]
 ;;
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

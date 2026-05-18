@@ -70,7 +70,7 @@ let component'
                display: grid;
                grid-auto-flow: row;
              |}])
-      ; (* Override default styles applied by [Bonsai_web_ui_toplayer.Popover] *)
+      ; (* Override default styles applied by [Bonsai_web_themed_toplayer.Popover] *)
         [%css
           {|
             padding: 0;
@@ -135,7 +135,7 @@ let component
     ?state
     (fun ~hide graph ->
       let%arr content = contents ~hide graph in
-      [%html
+      [%html.jsx
         {|
           <Skyline_card_v2.view
             ~elevation:%{Two}
@@ -149,5 +149,5 @@ let component
 ;;
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

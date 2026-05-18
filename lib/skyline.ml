@@ -1,29 +1,33 @@
-module Accordion = Skyline_accordion_v1
-module Banner = Skyline_banner_v1
-module Button = Skyline_button_v1
+module Accordion = Skyline_accordion_v2
+module Alert_dialog = Skyline_alert_dialog_v2
+module Banner = Skyline_banner_v2
+module Button = Skyline_button_v2
 module Card = Skyline_card_v2
-module Checkbox = Skyline_checkbox_v1
+module Checkbox = Skyline_checkbox_input_v2
 module Chip = Skyline_chip_v2
+module Confirm_dialog = Skyline_confirm_dialog_v2
 module Confirm_guard = Skyline_confirm_guard_v1
-module Context_menu = Skyline_context_menu_v1
-module Date_input = Skyline_date_input_v1
+module Menu = Skyline_menu_v2
+module Date_input = Skyline_date_input_v2
 module Copy_to_clipboard = Skyline_copy_to_clipboard_v1
-module Dialog = Skyline_dialog_v1
+module Dialog = Skyline_dialog_v2
+module Modal = Skyline_modal_v2
 module Divider = Skyline_divider_v1
 module Entrypoint = Skyline_entrypoint
 module Error_view = Skyline_error_view_v1
 module Errors = Skyline_errors_v1
+module Field = Skyline_field_v2
 module File_icon = Skyline_file_icon_v1
 module Flex = Skyline_flex_v1
 module Format = Skyline_format_v1
 module Fuzzy_match = Skyline_fuzzy_match_v1
 module Glimmer = Skyline_glimmer_v1
-module Grayscale = Skyline_grayscale_v1
 module Icon = Skyline_icon_v1
 module Input = Skyline_input_v1
 module Intent = Skyline_intent
 module Keyboard_shortcut = Skyline_keyboard_shortcut_v1
 module Keyboard_shortcut_label = Skyline_keyboard_shortcut_label_v1
+module Key_value_pair = Skyline_key_value_pairs_v1
 module Loading_state = Skyline_loading_state_v1
 module Loading_indicator = Skyline_loading_indicator_v1
 module Log_output = Skyline_log_output_v1
@@ -33,22 +37,25 @@ module Optimistic_update = Skyline_optimistic_update_v1
 module Panel = Skyline_panel_v1
 module Placeholder = Skyline_placeholder_v1
 module Popover = Skyline_popover_v2
-
-module Rising_edge_throttle = struct
-  let component = Bonsai_kernel_throttle.effect_throttle
-end
-
-module Select_input = Skyline_select_input_v1
+module Select_input = Skyline_picker_v2.Select_input
 module Size = Skyline_size
 module Split = Skyline_split_v1
+module Switch_input = Skyline_switch_input_v2
 module Table = Skyline_table_v1
 module Tabs = Skyline_tabs_v2
 module Text = Skyline_text_v2
-module Text_input = Skyline_text_input_v1
+module Text_input = Skyline_text_input_v2
+module Textarea_input = Skyline_textarea_input_v2
 module Theme = Skyline_theme_v1
+module Time_input = Skyline_time_input_v2
 module Toast = Skyline_toast_v1
 module Tokens = Skyline_tokens_v2
 module Tooltip = Skyline_tooltip_v2
 module Tree = Skyline_tree_v1
-module Typeahead = Skyline_typeahead_v1
-module Wait_effect = Bonsai_kernel_wait_effect
+
+module Typeahead = struct
+  open Skyline_picker_v2
+  module Controller = Typeahead_controller
+  module Combobox_input = Typeahead_combobox_input
+  module Select_input = Typeahead_select_input
+end

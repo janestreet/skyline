@@ -11,7 +11,7 @@ let view
   ~title
   ~close
   =
-  [%html
+  [%html.jsx
     {|
       <Skyline_dialog_v2.view
         ?test_selector
@@ -78,5 +78,5 @@ module For_screenshot_testing = struct
 end
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

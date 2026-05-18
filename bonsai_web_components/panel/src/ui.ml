@@ -240,7 +240,7 @@ let container
          | Vertical -> `Vertical)
       ~child_count:(List.length children)
   in
-  {%html|
+  {%html.jsx|
     <div
       %{base_grid_styles}
       %{panel_stack_classes}
@@ -264,7 +264,7 @@ let grid_template_from_sizes =
   | Vertical_variable sizes ->
     List.map
       ~f:(function
-        | None -> "1.55em"
+        | None -> "1.55rem"
         | Some (~size, ..) -> size_to_css size)
       sizes
     |> String.concat ~sep:" "
@@ -545,7 +545,7 @@ let divider
          ; A.create "width" "100%"
          ]
        in
-       [%html.Virtual_dom_svg
+       [%html.jsx.Virtual_dom_svg
          {|
            <svg %{svg_size_and_scale_styles} %{svg_border_styles}>
              <rect *{rect_fill_styles}></rect>
@@ -583,7 +583,7 @@ let chevron_buttons ?(on_click = Effect.Ignore) icon_color =
       ~size:(`Em_float 1.)
       Chevron_down
   in
-  {%html|<> %{collapsed_svg} %{expanded_svg} </>|}
+  {%html.jsx|<> %{collapsed_svg} %{expanded_svg} </>|}
 ;;
 
 let config_editor_button ~open_open_config_editor ~icon_color =
@@ -603,7 +603,7 @@ let config_editor_button ~open_open_config_editor ~icon_color =
         ~size:(`Em_float 1.)
         Codicons.Gear
     in
-    {%html|<div %{click_handler} %{open_open_config_editor}>%{gear_svg}</div>|}
+    {%html.jsx|<div %{click_handler} %{open_open_config_editor}>%{gear_svg}</div>|}
     |> Option.return
 ;;
 
@@ -626,10 +626,12 @@ let accordion
   let title_flex_grow =
     if Option.is_none custom_header then Some [%css {|flex-grow: 1;|}] else None
   in
-  let title_div = {%html|<div class="title-text" ?{title_flex_grow}>%{title}</div>|} in
+  let title_div =
+    {%html.jsx|<div class="title-text" ?{title_flex_grow}>%{title}</div>|}
+  in
   let custom_header =
     let%map.Option custom_header in
-    {%html|
+    {%html.jsx|
       <div
         style="
           flex-grow: 1;
@@ -645,7 +647,7 @@ let accordion
     |}
   in
   let header =
-    {%html|
+    {%html.jsx|
       <div
         %{header_collapsed_attr}
         %{Styling.header}
@@ -657,7 +659,7 @@ let accordion
     |}
   in
   let expanded_styling = if expanded then Styling.expanded else Attr.empty in
-  {%html|
+  {%html.jsx|
     <div %{expanded_styling} %{Styling.wrapper}>
       %{header} ?{Option.some_if expanded content}
     </div>
@@ -744,7 +746,7 @@ module Stack_rendering = struct
           accordion
             ~collapsed
             ~toggle_expanded
-            ~title:{%html|#{title}|}
+            ~title:{%html.jsx|#{title}|}
             ~content:child
             ~title_attr
             ~icon_color
@@ -752,7 +754,7 @@ module Stack_rendering = struct
             ~custom_header
         in
         let content_with_title =
-          {%html|
+          {%html.jsx|
             <div style="display: flex; flex-grow: 1; overflow: hidden">
               %{accordion_content}
             </div>
@@ -761,7 +763,7 @@ module Stack_rendering = struct
         Some (~content_with_title, ~custom_header:None))
       ~default:
         (Some
-           ( ~content_with_title:{%html|<div style="display: flex; flex-grow: 1; overflow: hidden">%{child}</div>|}
+           ( ~content_with_title:{%html.jsx|<div style="display: flex; flex-grow: 1; overflow: hidden">%{child}</div>|}
            , (* If the custom header isn't used in the child, bubble it up to the parent. *)
            ~custom_header ))
   ;;
@@ -893,7 +895,7 @@ module Stack_rendering = struct
         |}]
     in
     let children = [ content_with_title; child_divider ] |> List.filter_opt in
-    ( {%html|<div %{base_css} %{expansion_style} %{border_style}>*{children}</div>|}
+    ( {%html.jsx|<div %{base_css} %{expansion_style} %{border_style}>*{children}</div>|}
     , custom_header )
   ;;
 end
@@ -1162,7 +1164,7 @@ let tabbed_stack
             inject
               (Logic.Action.Change_tab (~panel_id:tab_panel_id, ~trigger_collapse:true)))
       in
-      {%html|
+      {%html.jsx|
         <div
           %{tab_attr
               ~active:(if current_tab = i then `Active else `Inactive)
@@ -1178,10 +1180,10 @@ let tabbed_stack
   in
   let badge_text = "+" ^ (Nonempty_list.length tabs - 1 |> string_of_int) in
   let badge = View.badge ~attrs:[ tab_badge_attr ] theme badge_text in
-  let badge_element = {%html|<div %{Styling.tab_collapsed}>%{badge}</div>|} in
+  let badge_element = {%html.jsx|<div %{Styling.tab_collapsed}>%{badge}</div>|} in
   let custom_header =
     let%map.Option custom_header in
-    {%html|
+    {%html.jsx|
       <div
         style="
           flex-grow: 1;
@@ -1210,7 +1212,7 @@ let tabbed_stack
             |}]
       else None
     in
-    {%html|<div ?{spacing_attr}>%{config_editor_button}</div>|}
+    {%html.jsx|<div ?{spacing_attr}>%{config_editor_button}</div>|}
   in
   let header_children =
     (chevron_button :: tab_elements)
@@ -1219,7 +1221,7 @@ let tabbed_stack
     @ Option.to_list config_editor_button
   in
   let header_element =
-    {%html|
+    {%html.jsx|
       <div %{tab_header_flex_style} %{collapsed_state_title_attr}>
         *{header_children}
       </div>
@@ -1227,10 +1229,10 @@ let tabbed_stack
   in
   let content_element =
     match collapsed with
-    | None -> Some {%html|<div %{Styling.tab_stack_content}>%{content_view}</div>|}
+    | None -> Some {%html.jsx|<div %{Styling.tab_stack_content}>%{content_view}</div>|}
     | Some _ -> None
   in
-  {%html|<div %{Styling.tab_stack}>%{header_element} ?{content_element}</div>|}
+  {%html.jsx|<div %{Styling.tab_stack}>%{header_element} ?{content_element}</div>|}
 ;;
 
 let stack
@@ -1271,7 +1273,7 @@ let stack
     let content_container_attr =
       container_attr ~drag_state:`Static ~direction:`Vertical ~child_count:0
     in
-    ( {%html|
+    ( {%html.jsx|
         <div
           style="
             flex-grow: 1;

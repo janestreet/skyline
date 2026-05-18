@@ -2,34 +2,36 @@ open! Core
 open! Private_skyline_prelude
 
 module Style = struct
-  let base =
-    Classes.
-      [ w_full
-      ; text_default
-      ; border 1
-      ; border_solid
-      ; border_default
-      ; bg_input
-      ; {%css|
-          outline: none;
-
-          &.for-testing--force-focus-visible,
-          &:focus {
-            background-color: %{Colors.Background.input_active#Css_gen.Color};
-          }
-
-          &::placeholder {
-            color: %{Css_gen.Color.to_string_css Colors.Text.input_placeholder};
-          }
-        |}
-      ]
+  (* Primary styles for the outer-most element. *)
+  let chrome =
+    Classes.[ w_full; text_default; border 1; border_solid; border_default; bg_input ]
   ;;
 
-  let size = function
-    | `Xs -> Classes.[ text_xs; px 0.5; rounded_xs ]
-    | `Sm -> Classes.[ text_sm; px 1.; rounded_xs ]
-    | `Md -> Classes.[ text_sm; px 2.; py 1.; rounded_sm ]
-    | `Lg -> Classes.[ text_sm; px 2.; py 2.; rounded_md ]
+  let input size =
+    let text_size =
+      match size with
+      | `Xs -> Classes.text_xs
+      | `Sm | `Md | `Lg -> Classes.text_sm
+    in
+    [ text_size
+    ; {%css|
+        outline: none;
+        &::placeholder {
+          color: %{Css_gen.Color.to_string_css Colors.Text.input_placeholder};
+        }
+      |}
+    ]
+  ;;
+
+  let container_size
+    =
+    (* Set the size via min-height to dodge border issues like [Skyline_button_v2]. *)
+    (* NOTE: The container is responsible for vertically centering contents. *)
+    function
+    | `Xs -> Classes.[ min_h 4.5; Classes.px 0.5; Classes.rounded_xs ]
+    | `Sm -> Classes.[ min_h 6.; Classes.px 1.; Classes.rounded_xs ]
+    | `Md -> Classes.[ min_h 7.; Classes.px 2.; Classes.rounded_sm ]
+    | `Lg -> Classes.[ min_h 8.; Classes.px 2.; Classes.rounded_md ]
   ;;
 
   let border_color ~disabled intent =
@@ -56,8 +58,11 @@ module Style = struct
           @media not (prefers-reduced-motion: reduce) {
             transition: box-shadow 150ms ease-in-out;
           }
-          &.for-testing--force-focus-visible,
-          &:focus {
+          &.for-testing--force-focus-within,
+          /* focus-within includes itself along with dependents, so we can use it for both
+            the composite view and the default. */
+            &:focus-within {
+            background-color: %{Colors.Background.input_active#Css_gen.Color};
             border-color: %{border#Css_gen.Color};
             box-shadow: 0 0 0 3px %{shadow#Css_gen.Color};
           }
@@ -68,33 +73,41 @@ module Style = struct
   let disabled = Attr.many Classes.[ bg_input_disabled; text_input_placeholder ]
 end
 
-let content' ?test_selector ?placeholder ?(attrs = []) ~input_attrs () =
-  Skyline_field_v2.Content.make (fun ~size ~intent ~disabled ->
-    let attrs =
-      [ Attr.many Style.base
-      ; Attr.many (Style.size size)
-      ; Style.border_color ~disabled intent
-      ; Style.focus_color intent
-      ; (if disabled then Style.disabled else Attr.empty)
-      ; Test_selector.attr_of_opt test_selector
-      ; Attr.many attrs
-      ]
-    in
+module Elements = struct
+  let input ?test_selector ?key ?placeholder ?(attrs = []) ~disabled () =
+    let attrs = [ Test_selector.attr_of_opt test_selector; Attr.many attrs ] in
     let placeholder =
       match placeholder with
       | None -> Attr.empty
       | Some placeholder -> Attr.placeholder placeholder
     in
     let maybe_disabled_attr = if disabled then Classes.disabled else Attr.empty in
-    {%html|
+    {%html.jsx|
       <input
-        *{input_attrs}
         *{attrs}
+        ?key
         %{placeholder}
         %{maybe_disabled_attr}
         type="text"
       />
-    |})
+    |}
+  ;;
+end
+
+let content' ?test_selector ?placeholder ?(attrs = []) ?(error = Ok ()) ~input_attrs () =
+  Skyline_field_v2.Content.make' (fun ~size ~intent ~disabled ->
+    let attrs =
+      [ Attr.many (Style.input size)
+      ; Attr.many Style.chrome
+      ; Attr.many (Style.container_size size)
+      ; Style.border_color ~disabled intent
+      ; Style.focus_color intent
+      ; (if disabled then Style.disabled else Attr.empty)
+      ; Attr.many input_attrs
+      ; Attr.many attrs
+      ]
+    in
+    Elements.input ?test_selector ?placeholder ~attrs ~disabled (), error)
 ;;
 
 let content ?test_selector ?attrs ?placeholder ~state () =
@@ -105,40 +118,187 @@ let content ?test_selector ?attrs ?placeholder ~state () =
   content' ?test_selector ?placeholder ?attrs ~input_attrs ()
 ;;
 
+module Composite = struct
+  module Content = struct
+    type t =
+      size:Skyline_size.t -> intent:Skyline_field_v2.Intent.t -> disabled:bool -> Node.t
+
+    module Expert = struct
+      let make f : t = f
+    end
+  end
+
+  let icon ?(attrs = []) ?color ~icon () : Content.t =
+    fun ~size ~intent:_ ~disabled ->
+    let icon_size =
+      match size with
+      | `Xs -> Font.size_xs
+      | `Sm | `Md | `Lg -> Font.size_sm
+    in
+    let color =
+      match color with
+      | Some color -> color ~disabled
+      | None -> if disabled then Colors.Text.secondary else Colors.Text.default
+    in
+    Bonsai_web_icon.view ~size:icon_size ~color ~attrs ~icon ()
+  ;;
+
+  let input ?test_selector ?key ?(attrs = []) ?placeholder ~state () : Content.t =
+    let value, set_value = state in
+    fun ~size ~intent:_ ~disabled ->
+      let attrs =
+        [ Attr.many (Style.input size)
+        ; {%css|
+            border: none;
+            color: inherit;
+            flex: 1;
+            min-width: 0;
+          |}
+        ; Attr.value_prop value
+        ; Attr.on_input (fun _ new_value -> set_value new_value)
+        ; Attr.many attrs
+        ]
+      in
+      Elements.input ?test_selector ?key ?placeholder ~attrs ~disabled ()
+  ;;
+
+  let custom ?test_selector ?key ?(attrs = []) children : Content.t =
+    fun ~size:_ ~intent:_ ~disabled:_ ->
+    {%html|
+      <div
+        ?key
+        *{attrs}
+        %{Test_selector.attr_of_opt test_selector}
+        %{Skyline_field_v2.Content.Expert.exclude_from_label_forwarding}
+      >
+        *{children}
+      </div>
+    |}
+  ;;
+
+  let content ?test_selector ?(attrs = []) children =
+    Skyline_field_v2.Content.make (fun ~size ~intent ~disabled ->
+      let wrapper_attrs =
+        [ Attr.many Style.chrome
+        ; Attr.many (Style.container_size size)
+        ; Style.border_color ~disabled intent
+        ; Style.focus_color intent
+        ; (if disabled then Style.disabled else Attr.empty)
+        ; {%css|
+            display: inline-flex;
+            align-items: center;
+            gap: %{Classes.spacing 1.#Css_gen.Length};
+          |}
+        ; Test_selector.attr_of_opt test_selector
+        ; Attr.many attrs
+        ]
+      in
+      let children =
+        List.map children ~f:(fun (child : Content.t) -> child ~size ~intent ~disabled)
+      in
+      {%html.jsx|<div *{wrapper_attrs}>*{children}</div>|})
+  ;;
+end
+
 module Numeric = struct
+  let prevent_non_numeric_keys =
+    Attr.on_keypress (fun event ->
+      let ( (* preventDefault on anything non-numeric ([0-9] and [.-_e]. *) ) =
+        match Js_of_ocaml.Dom_html.Keyboard_code.of_event event with
+        | Minus (* Covers [-] and [_]. *)
+        | NumpadSubtract | KeyE (* Float values can use [e] for exponent. *)
+        | Period
+        | NumpadDecimal
+        | Digit0
+        | Digit1
+        | Digit2
+        | Digit3
+        | Digit4
+        | Digit5
+        | Digit6
+        | Digit7
+        | Digit8
+        | Digit9
+        | Numpad0
+        | Numpad1
+        | Numpad2
+        | Numpad3
+        | Numpad4
+        | Numpad5
+        | Numpad6
+        | Numpad7
+        | Numpad8
+        | Numpad9 -> ()
+        | _ -> event##preventDefault
+      in
+      Effect.Ignore)
+  ;;
+
+  module State = struct
+    type 'a t =
+      { raw : string
+      ; set_raw : string -> unit Effect.t
+      ; value : 'a option
+      ; error : unit Or_error.t
+      }
+
+    let value t = t.value
+
+    let create (type a) (module M : Stringable.S with type t = a) ?state (local_ graph) =
+      let to_string = Option.value_map ~default:"" ~f:M.to_string in
+      let equal_parsed a b = String.equal (to_string a) (to_string b) in
+      let raw, set_raw = Bonsai.state "" graph in
+      let parse_result =
+        let%arr raw in
+        Or_error.try_with (fun () -> M.of_string raw)
+      in
+      let parsed =
+        let%arr parse_result in
+        Or_error.ok parse_result
+      in
+      let set_parsed =
+        let%arr set_raw in
+        fun value -> set_raw (to_string value)
+      in
+      let ( (* Sync external state, if provided. *) ) =
+        match state with
+        | None -> ()
+        | Some (store_value, store_set) ->
+          Bonsai_kernel_mirror.mirror
+            ~trigger:`Before_display
+            ~equal:equal_parsed
+            ~store_set
+            ~store_value
+            ~interactive_set:set_parsed
+            ~interactive_value:parsed
+            graph
+      in
+      let%arr raw and set_raw and parsed and parse_result in
+      let error =
+        match parse_result with
+        | Ok _ -> Ok ()
+        | Error _ when String.is_empty raw -> Ok ()
+        | Error e -> Error e
+      in
+      { raw; set_raw; value = parsed; error }
+    ;;
+  end
+
   let content
-    (type a)
-    ~(stringable : (module Stringable.S with type t = a))
     ?test_selector
-    ?attrs
+    ?(attrs = [])
     ?placeholder
-    ~state:(value, set_value)
+    ~state:{ State.raw; set_raw; error; value = _ }
     ()
     =
-    let module M = (val stringable) in
-    let value_attr =
-      let of_string_opt s = Option.try_with (fun () -> M.of_string s) in
-      let is_or_could_be_valid s =
-        let is_valid s = of_string_opt s |> Option.is_some in
-        (* Also check for values that could be valid if the user types another digit. *)
-        is_valid s || is_valid (s ^ "0")
-      in
-      let parse s = Option.map (of_string_opt s) ~f:M.to_string in
-      let value = Option.value_map value ~default:"" ~f:M.to_string in
-      let set_value s = set_value (of_string_opt s) in
-      Input_value_hook.create
-        ~filter_input:is_or_could_be_valid
-        ~parse
-        ~state:(value, set_value)
-        ()
-    in
     let input_attrs =
-      [ (* Hint to browser that this input is numeric. *)
-        Attr.create "inputmode" "decimal"
-      ; value_attr
+      [ Attr.create "inputmode" "decimal"
+      ; prevent_non_numeric_keys
+      ; Attr.value_prop raw
+      ; Attr.on_input (fun _ new_value -> set_raw new_value)
       ]
     in
-    content' ?test_selector ?placeholder ?attrs ~input_attrs ()
+    content' ?test_selector ?placeholder ~attrs ~error ~input_attrs ()
   ;;
 
   module Decimal = struct
@@ -185,9 +345,5 @@ module Numeric = struct
 end
 
 module For_docs = struct
-  let ml_filepath = __FILE__
-end
-
-module For_testing = struct
-  module Input_value_hook = Input_value_hook
+  let ml_filepath = [%here].pos_fname
 end

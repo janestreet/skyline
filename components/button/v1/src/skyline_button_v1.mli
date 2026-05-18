@@ -147,6 +147,7 @@ val with_error
   -> ?confirm:bool Bonsai.t
   -> ?loading:[ `Yes | `No | `While_on_click_in_flight ] Bonsai.t
   -> ?dropdown:unit Or_error.t Skyline_context_menu_v1.t Bonsai.t
+  -> ?on_dropdown_open:unit Effect.t Bonsai.t
   -> ?autofocus:bool Bonsai.t
   -> ?disabled:bool Bonsai.t
   -> ?secondary:bool Bonsai.t
@@ -165,6 +166,7 @@ val with_error_compact
   -> ?confirm:bool Bonsai.t
   -> ?loading:[ `Yes | `No | `While_on_click_in_flight ] Bonsai.t
   -> ?dropdown:unit Or_error.t Skyline_context_menu_v1.t Bonsai.t
+  -> ?on_dropdown_open:unit Effect.t Bonsai.t
   -> ?autofocus:bool Bonsai.t
   -> ?disabled:bool Bonsai.t
   -> ?secondary:bool Bonsai.t

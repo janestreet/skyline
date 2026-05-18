@@ -93,7 +93,7 @@ let single_panel_row ~style_config ~config ~title =
         | `Unnamed -> [%css {|font-style: italic;|}]
       in
       let title = Vdom.Node.text (snd title) in
-      {%html|
+      {%html.jsx|
         <div style="flex-grow: 1; padding-right: 1em" %{italics}>
           %{title}
         </div>
@@ -114,7 +114,7 @@ let single_panel_row ~style_config ~config ~title =
           | _ -> icon)
         buttons
     in
-    {%html|
+    {%html.jsx|
       <div
         %{panel_attr}
         style="display: flex; flex-direction: row; justify-content: space-between"
@@ -205,7 +205,7 @@ let panel_layout_options ~open_config_editor ~style_config ~recurse state (local
         let%arr single_panel_row = single_panel_row ~style_config ~title ~config
         and child_buttons
         and child_children = recurse state graph in
-        {%html|
+        {%html.jsx|
           <div>
             ?{single_panel_row ~buttons:child_buttons}
             <div style="padding-left: 1em">*{child_children}</div>
@@ -247,7 +247,7 @@ let panel_layout_options ~open_config_editor ~style_config ~recurse state (local
         and buttons =
           child_config_buttons ~open_config_editor ~config ~inject:child_inject graph
         in
-        {%html|
+        {%html.jsx|
           <div>
             ?{single_panel_row ~buttons}
             <div style="padding-left: 1em">*{child_children}</div>
@@ -276,9 +276,9 @@ let component
     let presets =
       Map.to_alist presets
       |> List.map ~f:(fun (name, config) ->
-        {%html|<div %{on_click config}>%{name#String}</div>|})
+        {%html.jsx|<div %{on_click config}>%{name#String}</div>|})
     in
-    {%html|
+    {%html.jsx|
       <div %{presets_attr}>
         <span class="title">Presets</span>
         <div>*{presets}</div>
@@ -294,5 +294,5 @@ let component
     Bonsai.fix ~f:(panel_layout_options ~style_config ~open_config_editor) state graph
   in
   let%arr preset_chooser and panel_layout_options in
-  {%html|<div>?{preset_chooser} *{panel_layout_options}</div>|}
+  {%html.jsx|<div>?{preset_chooser} *{panel_layout_options}</div>|}
 ;;

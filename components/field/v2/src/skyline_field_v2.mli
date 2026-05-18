@@ -1,11 +1,3 @@
-[@@@alert
-  skyline_beta
-    {|
-This component is currently in a beta phase. Its styling may change in breaking ways.
-If you're interested in using this component please reach out to Skyline devs.
-We appreciate your enthusiasm. Thanks.
-|}]
-
 open! Core
 open! Bonsai_web
 
@@ -62,7 +54,7 @@ open! Bonsai_web
             Apply spline reticulation factors
           </>)
         >
-          <Skyline_checkbox_v2.content ~state:%{(value, set_value)} />
+          <Skyline_checkbox_input_v2.content ~state:%{(value, set_value)} />
         </>
       |}
     ]} *)
@@ -88,7 +80,27 @@ end
 module Content : sig
   type t
 
+  (** Render a custom [Content.t] *)
   val make : (size:Skyline_size.t -> intent:Intent.t -> disabled:bool -> Vdom.Node.t) -> t
+
+  (** Like [make], but allows the input to put itself into an error state. Uncommonly
+      used, but this allows some inputs to handle validation failures internally and
+      simplify APIs. *)
+  val make'
+    :  (size:Skyline_size.t
+        -> intent:Intent.t
+        -> disabled:bool
+        -> Vdom.Node.t * unit Or_error.t)
+    -> t
+
+  module Expert : sig
+    (** All [Content] elements inside a field will be nested within a [<label>], meaning
+        clicking within label will focus the first interactable child.
+
+        To exclude an element from this label forwarding attach this attr. This will cause
+        the entire DOM subtree under this element to be excluded. *)
+    val exclude_from_label_forwarding : Vdom.Attr.t
+  end
 end
 
 module Label : sig

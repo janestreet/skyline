@@ -130,9 +130,37 @@ module Style = struct
   ;;
 end
 
-let content ?test_selector ?(attrs = []) ~group ~state () =
+module Controller = struct
+  module Item = struct
+    type 'a t =
+      { value : 'a
+      ; group : string
+      ; state : bool * unit Effect.t
+      }
+
+    let value t = t.value
+  end
+
+  type 'a t =
+    { (* [group] is the id passed to the individual radio inputs. This ensures the native
+         browser keyboard interactions work well. *)
+      group : string
+    ; get_item_state : 'a -> bool * unit Effect.t
+    }
+
+  let make ~state:(selected, set_selected) ~equal (local_ graph) =
+    let group = Bonsai.path_id graph in
+    let%arr selected and set_selected and group in
+    let get_item_state value = equal value selected, set_selected value in
+    { group; get_item_state }
+  ;;
+
+  let item t ~value = { Item.value; group = t.group; state = t.get_item_state value }
+end
+
+let content ?test_selector ?(attrs = []) ~item () =
+  let { Controller.Item.value = _; group; state = checked, on_change } = item in
   Skyline_field_v2.Content.make (fun ~size ~intent ~disabled ->
-    let checked, on_change = state in
     let cursor_disabled = if disabled then {%css|cursor: not-allowed;|} else Attr.empty in
     let text_size : Skyline_text_v2.Size.t =
       match size with
@@ -144,7 +172,7 @@ let content ?test_selector ?(attrs = []) ~group ~state () =
     (* We want the root element to be a text node because:
        - the element is sized in [em] units
        - the element needs a text baseline so that it lines up well next to text labels *)
-    {%html|
+    {%html.jsx|
       <Skyline_text_v2.view *{attrs} ~size:%{text_size} ?test_selector>
         <div style="display: flex; height: 1lh; align-items: center">
           <input
@@ -155,7 +183,7 @@ let content ?test_selector ?(attrs = []) ~group ~state () =
             %{Style.color ~disabled ~checked intent}
             %{Style.checked_indicator ~disabled}
             %{cursor_disabled}
-            %{Vdom.Attr.bool_property "checked" checked}
+            %{Vdom.Attr.checked_prop checked}
             %{if disabled then Attr.disabled else Attr.empty}
           />
         </div>
@@ -163,6 +191,10 @@ let content ?test_selector ?(attrs = []) ~group ~state () =
     |})
 ;;
 
+module For_testing = struct
+  let item ~value ~group ~state = { Controller.Item.value; group; state }
+end
+
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

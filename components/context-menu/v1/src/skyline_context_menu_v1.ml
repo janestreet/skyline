@@ -12,7 +12,7 @@ module Style = struct
   ;;
 
   let clear_popover_styles_config =
-    Bonsai_web_ui_toplayer.Popover.Config.create
+    Bonsai_web_themed_toplayer.Popover.Config.create
       ~popover_attrs:[ Vdom.Attr.style clear_popover_styles ]
       ~arrow:Vdom.Node.none
       ()
@@ -433,7 +433,7 @@ let contents ~close items graph =
 let component' ~position ~alignment items graph =
   let position =
     match%arr position with
-    | Skyline_popover_v1.Position.Auto -> Bonsai_web_ui_toplayer.Position.Auto
+    | Skyline_popover_v1.Position.Auto -> Bonsai_web_themed_toplayer.Position.Auto
     | Top -> Top
     | Bottom -> Bottom
     | Left -> Left
@@ -441,7 +441,7 @@ let component' ~position ~alignment items graph =
   in
   let alignment =
     match%arr alignment with
-    | Skyline_popover_v1.Alignment.Center -> Bonsai_web_ui_toplayer.Alignment.Center
+    | Skyline_popover_v1.Alignment.Center -> Bonsai_web_themed_toplayer.Alignment.Center
     | Start -> Start
     | End -> End
   in
@@ -454,12 +454,12 @@ let component' ~position ~alignment items graph =
     match%sub visible with
     | `Hidden -> return Vdom.Attr.empty
     | `Virtual anchor ->
-      Bonsai_web_ui_toplayer.Popover.always_open_virtual
+      Bonsai_web_themed_toplayer.Popover.always_open_virtual
         ~config:(`This_one (return Style.clear_popover_styles_config))
         ~autoclose:
-          (Bonsai_web_ui_toplayer.Autoclose.create
+          (Bonsai_web_themed_toplayer.Autoclose.create
              ~close_on_right_click_outside:
-               (Bonsai.return Bonsai_web_ui_toplayer.Close_on_click_outside.Yes)
+               (Bonsai.return Bonsai_web_themed_toplayer.Close_on_click_outside.Yes)
              ~close
              graph)
         ~position
@@ -470,12 +470,12 @@ let component' ~position ~alignment items graph =
         graph;
       return Vdom.Attr.empty
     | `Anchored ->
-      Bonsai_web_ui_toplayer.Popover.always_open
+      Bonsai_web_themed_toplayer.Popover.always_open
         ~config:(`This_one (return Style.clear_popover_styles_config))
         ~autoclose:
-          (Bonsai_web_ui_toplayer.Autoclose.create
+          (Bonsai_web_themed_toplayer.Autoclose.create
              ~close_on_right_click_outside:
-               (Bonsai.return Bonsai_web_ui_toplayer.Close_on_click_outside.Yes)
+               (Bonsai.return Bonsai_web_themed_toplayer.Close_on_click_outside.Yes)
              ~close
              graph)
         ~position
@@ -520,7 +520,7 @@ let component
       let left = get event##.pageX in
       set_visible
         (`Virtual
-          (Bonsai_web_ui_toplayer.Anchor.of_coordinate
+          (Bonsai_web_themed_toplayer.Anchor.of_coordinate
              ~relative_to:`Document
              ~x:left
              ~y:top))
@@ -580,7 +580,7 @@ let manual_position items graph =
     | `Hidden | `Virtual _ ->
       set_visible
         (`Virtual
-          (Bonsai_web_ui_toplayer.Anchor.of_coordinate
+          (Bonsai_web_themed_toplayer.Anchor.of_coordinate
              ~relative_to:`Document
              ~x:left
              ~y:top))

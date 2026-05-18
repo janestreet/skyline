@@ -4,5 +4,6 @@
  (preprocess
   (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css ppx_html))
  (libraries bonsai bonsai_web bonsai_web_components.icon core
-   private_skyline_prelude private_skyline_utility_classes skyline_text_v2)
+   private_skyline_prelude private_skyline_utility_classes skyline_size
+   skyline_text_v2)
  (flags :standard -alert -skyline_beta))

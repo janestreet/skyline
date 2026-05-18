@@ -1,6 +1,6 @@
 open! Core
 open! Util
-module Tree_table = Bonsai_web_ui_tree_table
+module Tree_table = Bonsai_web_contrib_tree_table
 
 let compute
   ?map_to_tree_instrumentation

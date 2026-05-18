@@ -24,10 +24,67 @@ module Label_position = struct
   [@@deriving to_string]
 end
 
-module Content = struct
-  type t = size:Skyline_size.t -> intent:Intent.t -> disabled:bool -> Node.t
+module Label_forwarding = struct
+  open Js_of_ocaml
 
-  let make f = f
+  let data_exclude_from_label_forwarding =
+    "data-skyline-field-exclude-from-label-forwarding"
+  ;;
+
+  let coerce_to_html_element (element : #Browser_types.event_target Js.t Js.Opt.t) =
+    let%bind.Option element = Js.Opt.to_option element in
+    let%bind.Option window = Browser_expert.Global.window () in
+    Browser_expert.coerce ~to_:window##._HTMLElement_t element
+  ;;
+
+  let for_label_attr =
+    (* Do nothing in environments that might not implement target/preventDefault. *)
+    if not Am_running_how_js.am_in_browser_like_api
+    then Attr.empty
+    else (
+      let selectors = Js.string [%string "[%{data_exclude_from_label_forwarding}]"] in
+      let handler (event : Dom_html.mouseEvent Js.t) =
+        let event = Browser_extra.Coercion.of_jsoo_event event in
+        let should_prevent_default =
+          match coerce_to_html_element event##.target with
+          | None -> false
+          | Some target -> Js.Opt.test (target##closest ~selectors)
+        in
+        if should_prevent_default
+        then
+          (* We disable native browser label forwarding behavior by preventing default
+             click behavior on the <label> element. *)
+          event##preventDefault;
+        Effect.Ignore
+      in
+      Attr.many
+        [ (* For some reason we have to do both of these to disable label forwarding. *)
+          Attr.on_click handler
+        ; Attr.on_mousedown handler
+        ])
+  ;;
+end
+
+module Content = struct
+  type t =
+    size:Skyline_size.t -> intent:Intent.t -> disabled:bool -> Node.t * unit Or_error.t
+
+  let make
+    (f : size:Skyline_size.t -> intent:Intent.t -> disabled:bool -> Node.t)
+    ~size
+    ~intent
+    ~disabled
+    =
+    f ~size ~intent ~disabled, Ok ()
+  ;;
+
+  let make' f = f
+
+  module Expert = struct
+    let exclude_from_label_forwarding =
+      Attr.create Label_forwarding.data_exclude_from_label_forwarding ""
+    ;;
+  end
 end
 
 module Style = struct
@@ -86,9 +143,9 @@ module Style = struct
 end
 
 module Label = struct
-  type t = Content.t
+  type t = size:Skyline_size.t -> intent:Intent.t -> disabled:bool -> Vdom.Node.t
 
-  let make = Content.make
+  let make f = f
 
   module Style = struct
     let text size =
@@ -104,8 +161,8 @@ module Label = struct
   end
 
   let content ?test_selector ?(attrs = []) children =
-    Content.make (fun ~size ~intent:_ ~disabled:_ ->
-      {%html|
+    make (fun ~size ~intent:_ ~disabled:_ ->
+      {%html.jsx|
         <div
           %{Test_selector.attr_of_opt test_selector}
           %{Style.text size}
@@ -118,9 +175,9 @@ module Label = struct
 end
 
 module Footer = struct
-  type t = Content.t
+  type t = size:Skyline_size.t -> intent:Intent.t -> disabled:bool -> Node.t
 
-  let make = Content.make
+  let make f = f
 
   module Style = struct
     let text size =
@@ -147,8 +204,8 @@ module Footer = struct
   end
 
   let content ?test_selector ?(attrs = []) children =
-    Content.make (fun ~size ~intent ~disabled ->
-      {%html|
+    make (fun ~size ~intent ~disabled ->
+      {%html.jsx|
         <div
           %{Test_selector.attr_of_opt test_selector}
           %{Style.text size}
@@ -183,26 +240,53 @@ let view'
           | Left | Right ->
             if disabled then Classes.text_disabled else Classes.text_default
         in
-        {%html|<div *{attrs} %{text_color}>%{label ~size ~intent ~disabled}</div>|}
+        {%html.jsx|<div *{attrs} %{text_color}>%{label ~size ~intent ~disabled}</div>|}
       | None -> Node.none
+    ;;
+
+    let content_nodes_and_error =
+      let evaluated_contents =
+        List.map contents ~f:(fun content -> content ~size ~intent ~disabled)
+      in
+      let nodes, errors = List.unzip evaluated_contents in
+      let error = Or_error.all_unit errors in
+      nodes, error
     ;;
 
     let footer ?(attrs = []) () =
-      match footer with
-      | Some footer -> {%html|<div *{attrs}>%{footer ~size ~intent ~disabled}</div>|}
-      | None -> Node.none
+      let _, error = content_nodes_and_error in
+      match error with
+      | Ok () ->
+        (match footer with
+         | Some footer ->
+           {%html.jsx|<div *{attrs}>%{footer ~size ~intent ~disabled}</div>|}
+         | None -> Node.none)
+      | Error error ->
+        let error_text = Error.to_string_hum error in
+        {%html.jsx|
+          <div
+            %{Footer.Style.text size}
+            %{Footer.Style.color ~disabled `Danger}
+            *{attrs}
+          >
+            %{error_text#String}
+          </div>
+        |}
     ;;
 
     let contents ?(attrs = []) () =
-      {%html|<div *{attrs}>*{List.map contents ~f:(fun content -> content ~size ~intent ~disabled)}</div>|}
+      let nodes, _ = content_nodes_and_error in
+      (* Flex ensures we don't impose our line-height on inline children. *)
+      {%html.jsx|<div *{attrs} %{Classes.flex} %{Classes.flex_col}>*{nodes}</div>|}
     ;;
   end
   in
   match label_position with
   | Top ->
-    {%html|
+    {%html.jsx|
       <label
         *{attrs}
+        %{Label_forwarding.for_label_attr}
         %{Test_selector.attr_of_opt test_selector}
         %{Style.block_layout ~in_group }
       >
@@ -212,9 +296,10 @@ let view'
       </label>
     |}
   | Left ->
-    {%html|
+    {%html.jsx|
       <label
         *{attrs}
+        %{Label_forwarding.for_label_attr}
         %{Test_selector.attr_of_opt test_selector}
         %{Style.inline_layout ~size ~in_group }
       >
@@ -224,9 +309,10 @@ let view'
       </label>
     |}
   | Right ->
-    {%html|
+    {%html.jsx|
       <label
         *{attrs}
+        %{Label_forwarding.for_label_attr}
         %{Test_selector.attr_of_opt test_selector}
         %{Style.inline_layout ~size ~in_group }
       >
@@ -287,7 +373,7 @@ module Grid = struct
   ;;
 
   let view ?test_selector ?(attrs = []) (fields : Vdom.Node.t list) =
-    {%html|
+    {%html.jsx|
       <fieldset
         style="display: grid; grid-template-columns: auto 1fr"
         *{attrs}
@@ -300,5 +386,5 @@ module Grid = struct
 end
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

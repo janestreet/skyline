@@ -1,6 +1,6 @@
 (library
- (name skyline_switch_v2)
- (public_name skyline.switch_v2)
+ (name skyline_switch_input_v2)
+ (public_name skyline.switch_input_v2)
  (preprocess
   (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css ppx_html))
  (libraries bonsai bonsai_web bonsai_web_components.checkbox core

@@ -3,7 +3,7 @@
  (public_name skyline.tree_v1)
  (preprocess
   (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css))
- (libraries bonsai bonsai_web bonsai_web_ui_tree_table
+ (libraries bonsai bonsai_web bonsai_web_contrib_tree_table
    bonsai_web_components.codicons core virtual_dom.css_gen fuzzy_match.search
    incr_map js_of_ocaml skyline_context_menu_v1 skyline_divider_v1
    skyline_flex_v1 skyline_fuzzy_match_v1 skyline_placeholder_v1

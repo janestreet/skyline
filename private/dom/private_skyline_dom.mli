@@ -33,6 +33,13 @@ module Element : sig
 
   val get_by_selector : string -> t option
   val scroll_into_view : ?options:Scroll_into_view_options.t -> t -> unit Effect.t
+
+  (** [focus t] returns an effect that calls [.focus()] on the element.
+
+      Unlike [scroll_into_view], this does _not_ short-circuit in [Node_jsdom_test]: focus
+      is observable under jsdom (via [document.activeElement]) and we rely on that for
+      keyboard-navigation tests. *)
+  val focus : t -> unit Effect.t
 end
 
 module Event : sig

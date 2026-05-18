@@ -509,84 +509,112 @@ let changes ~keep_ws ~context ~original =
       |> Codemirror.View.Decoration.set ~sort:true)
 ;;
 
+module Diff_side = struct
+  type t =
+    | Left
+    | Right
+  [@@deriving equal]
+end
+
+let diff_side =
+  lazy
+    (Codemirror.State.Facet.define
+       (Codemirror.State.Facet.Config.create ~combine:List.last ()))
+;;
+
 let side_by_side ?report_error ~keep_ws ~context ~other_side left_or_right =
-  match left_or_right with
-  | `Left ->
-    Codemirror.State.Facet.compute
-      Codemirror.View.Editor_view.decorations
-      ~deps:[ Doc ]
-      ~get:(fun state ->
-        try
-          let text = Codemirror.State.Editor_state.doc state in
-          let segments = segment_reverse ~keep_ws ~original:other_side ~text in
-          let deleted =
-            changed_line_decorations
-              ~bg:Style.For_referencing.cm_diff_deleted_line_bg
-              ~fg:Style.For_referencing.cm_diff_deleted_line_fg
-              ~text
-              segments
-          in
-          let refinements =
-            refinements
-              ~class_:Style.For_referencing.cm_diff_deleted_refinement
-              ~text
-              segments
-          in
-          let hidden_context =
-            match context with
-            | Some context -> hidden_decorations ~text ~context segments
-            | None -> []
-          in
-          let alignment = alignment_placeholder_decorations ~text segments in
-          List.concat [ deleted; refinements; hidden_context; alignment ]
-          |> Codemirror.View.Decoration.set ~sort:true
-        with
-        | exn ->
-          (match report_error with
-           | Some report_error ->
-             Bonsai.Effect.Expert.handle
-               (report_error (Or_error.of_exn exn))
-               ~on_exn:(fun exn -> Exn.reraise exn "Unhandled exception raised in effect");
-             Codemirror.View.Decoration.set ~sort:true []
-           | None -> raise exn))
-  | `Right ->
-    Codemirror.State.Facet.compute
-      Codemirror.View.Editor_view.decorations
-      ~deps:[ Doc ]
-      ~get:(fun state ->
-        try
-          let text = Codemirror.State.Editor_state.doc state in
-          let segments = segment ~keep_ws ~original:other_side ~text in
-          let added =
-            changed_line_decorations
-              ~bg:Style.For_referencing.cm_diff_added_line_bg
-              ~fg:Style.For_referencing.cm_diff_added_line_fg
-              ~text
-              segments
-          in
-          let refinements =
-            refinements
-              ~class_:Style.For_referencing.cm_diff_added_refinement
-              ~text
-              segments
-          in
-          let hidden_context =
-            match context with
-            | Some context -> hidden_decorations ~text ~context segments
-            | None -> []
-          in
-          let alignment = alignment_placeholder_decorations ~text segments in
-          List.concat [ added; refinements; hidden_context; alignment ]
-          |> Codemirror.View.Decoration.set ~sort:true
-        with
-        | exn ->
-          (match report_error with
-           | Some report_error ->
-             Bonsai.Effect.Expert.handle
-               (report_error (Or_error.of_exn exn))
-               ~on_exn:(fun exn -> Exn.reraise exn "Unhandled exception raised in effect");
-             Codemirror.View.Decoration.set ~sort:true []
-           | None -> raise exn))
+  let side_ext =
+    let side =
+      match left_or_right with
+      | `Left -> Diff_side.Left
+      | `Right -> Right
+    in
+    Codemirror.State.Facet.of_
+      (force diff_side)
+      (Codemirror.With_conversion.create ~t_to_js:Obj.magic side)
+  in
+  let decorations_ext =
+    match left_or_right with
+    | `Left ->
+      Codemirror.State.Facet.compute
+        Codemirror.View.Editor_view.decorations
+        ~deps:[ Doc ]
+        ~get:(fun state ->
+          try
+            let text = Codemirror.State.Editor_state.doc state in
+            let segments = segment_reverse ~keep_ws ~original:other_side ~text in
+            let deleted =
+              changed_line_decorations
+                ~bg:Style.For_referencing.cm_diff_deleted_line_bg
+                ~fg:Style.For_referencing.cm_diff_deleted_line_fg
+                ~text
+                segments
+            in
+            let refinements =
+              refinements
+                ~class_:Style.For_referencing.cm_diff_deleted_refinement
+                ~text
+                segments
+            in
+            let hidden_context =
+              match context with
+              | Some context -> hidden_decorations ~text ~context segments
+              | None -> []
+            in
+            let alignment = alignment_placeholder_decorations ~text segments in
+            List.concat [ deleted; refinements; hidden_context; alignment ]
+            |> Codemirror.View.Decoration.set ~sort:true
+          with
+          | exn ->
+            (match report_error with
+             | Some report_error ->
+               Bonsai.Effect.Expert.handle
+                 (report_error (Or_error.of_exn exn))
+                 ~on_exn:(fun exn ->
+                   Exn.reraise exn "Unhandled exception raised in effect");
+               Codemirror.View.Decoration.set ~sort:true []
+             | None -> raise exn))
+    | `Right ->
+      Codemirror.State.Facet.compute
+        Codemirror.View.Editor_view.decorations
+        ~deps:[ Doc ]
+        ~get:(fun state ->
+          try
+            let text = Codemirror.State.Editor_state.doc state in
+            let segments = segment ~keep_ws ~original:other_side ~text in
+            let added =
+              changed_line_decorations
+                ~bg:Style.For_referencing.cm_diff_added_line_bg
+                ~fg:Style.For_referencing.cm_diff_added_line_fg
+                ~text
+                segments
+            in
+            let refinements =
+              refinements
+                ~class_:Style.For_referencing.cm_diff_added_refinement
+                ~text
+                segments
+            in
+            let hidden_context =
+              match context with
+              | Some context -> hidden_decorations ~text ~context segments
+              | None -> []
+            in
+            let alignment = alignment_placeholder_decorations ~text segments in
+            List.concat [ added; refinements; hidden_context; alignment ]
+            |> Codemirror.View.Decoration.set ~sort:true
+          with
+          | exn ->
+            (match report_error with
+             | Some report_error ->
+               Bonsai.Effect.Expert.handle
+                 (report_error (Or_error.of_exn exn))
+                 ~on_exn:(fun exn ->
+                   Exn.reraise exn "Unhandled exception raised in effect");
+               Codemirror.View.Decoration.set ~sort:true []
+             | None -> raise exn))
+  in
+  Codemirror.State.Extension.of_list [ side_ext; decorations_ext ]
 ;;
 
 let all_lines ~class_name =

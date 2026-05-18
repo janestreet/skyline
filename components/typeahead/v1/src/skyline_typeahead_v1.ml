@@ -83,7 +83,7 @@ let component
   let input_width, set_input_width = Bonsai.state 0. graph in
   let track_width =
     let%arr set_input_width in
-    Bonsai_web_ui_element_size_hooks.Size_tracker.on_change
+    Bonsai_web_element_size_hooks.Size_tracker.on_change
       (fun { border_box = { width; height = _ }; content_box = _ } ->
          set_input_width width)
   in
@@ -160,7 +160,7 @@ let component
         inject Deactivate
       | ArrowUp -> inject Move_up
       | ArrowDown -> inject Move_down
-      | Enter -> inject Select_current
+      | Enter | NumpadEnter -> inject Select_current
       | Tab when Option.is_some on_tab -> inject Tab_complete_current
       | _ -> Effect.Ignore
     in

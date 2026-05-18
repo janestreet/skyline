@@ -9,8 +9,8 @@ let var = Incr.Var.create (Map.empty (module Nonempty_string_list))
 
 let out =
   Incr.Var.watch var
-  |> Bonsai_web_ui_tree_table.map_to_tree (module String)
-  |> Bonsai_web_ui_tree_table.tree_to_map
+  |> Bonsai_web_contrib_tree_table.map_to_tree (module String)
+  |> Bonsai_web_contrib_tree_table.tree_to_map
        ~how_to_deal_with_nones:Remove_and_also_remove_descendants
 ;;
 
@@ -27,7 +27,7 @@ let%expect_test "re-using the same incremental var"
       Incr.stabilize ();
       Incr.Observer.value_exn obs
       |> Map.data
-      |> List.map ~f:Bonsai_web_ui_tree_table.Row.data
+      |> List.map ~f:Bonsai_web_contrib_tree_table.Row.data
     in
     let out_non_incr = nonincremental features in
     [%test_result: t list] out_incr ~expect:out_non_incr

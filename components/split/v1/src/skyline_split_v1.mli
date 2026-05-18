@@ -36,7 +36,7 @@ end
     Visually, this will draw borders {i between} elements, but add no other decorations.
 
     A common way to use this would be to wrap it in a [Skyline.Card.column], but it could
-    also be combined with other containers like [Skyline.Accordion].
+    also be combined with other containers like [Skyline_accordion_v1].
 
     If you need more control over the layout or want to persist user's changes, put views
     in collapsible accordions, use tabs, or give titles to panels, consider using

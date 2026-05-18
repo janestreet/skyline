@@ -9,10 +9,6 @@ module Layout = struct
   [@@deriving enumerate, to_string, sexp_of, equal]
 end
 
-module Pair = struct
-  type t = Vdom.Node.t * Vdom.Node.t
-end
-
 module Style = struct
   let layout : user_gap:Skyline_size.t -> Layout.t -> Vdom.Attr.t list =
     let open Classes in
@@ -45,69 +41,72 @@ module Style = struct
   ;;
 end
 
-let key ?icon name =
-  let open Classes in
-  let icon =
-    let%map.Option icon in
+module Pair = struct
+  type t = size:Skyline_size.t -> Vdom.Node.t * Vdom.Node.t list
+
+  let content ~key children : t = fun ~size:_ -> key, children
+
+  let text ?icon ~key children : t =
+    fun ~size ->
     let icon =
+      let%map.Option icon in
+      let icon_size =
+        match size with
+        | `Xs -> Font.size_xs
+        | `Sm -> Font.size_sm
+        | `Md -> Font.size_base
+        | `Lg -> Font.size_lg
+      in
       Bonsai_web_icon.view
-        ~attrs:[ h_full; w_full; inline_flex ]
-        ~size:(spacing 4.0)
+        ~attrs:Classes.[ h_full; w_full; inline_flex ]
+        ~size:icon_size
         ~color:Colors.Text.secondary
         ~icon
         ()
     in
-    {%html|
-      <div
-        %{flex}
-        %{justify_center}
-        %{items_center}
-        %{w 4.0}
-        %{h 4.0}
-      >
-        %{icon}
-      </div>
-    |}
-  in
-  let color = {%css|color: %{Colors.Text.secondary#Css_gen.Color};|} in
-  {%html|
-    <div
-      %{flex}
-      %{flex_row}
-      %{gap 1.0}
-      %{items_center}
-      %{color}
-    >
-      ?{icon}#{name}
-    </div>
-  |}
-;;
+    let size = (size :> Skyline_text_v2.Size.t) in
+    let key =
+      {%html.jsx|
+        <Skyline_text_v2.view
+          *{Classes.[inline_flex; flex_row; gap 1.0; items_center]}
+          ~size
+          ~color:%{`Secondary}
+          >?{icon}#{key}</>
+      |}
+    in
+    let children =
+      List.map children ~f:(fun child ->
+        {%html.jsx|<Skyline_text_v2.view ~size>%{child}</>|})
+    in
+    key, children
+  ;;
+end
 
-let view
-  ?(attrs = [])
-  ?(layout = Layout.Two_columns)
-  ?gap:(user_gap : Skyline_size.t = `Md)
-  pairs
-  =
+let view ?(attrs = []) ?(size = `Md) ?(layout = Layout.Two_columns) (pairs : Pair.t list) =
   let open Classes in
-  let style = Style.layout ~user_gap layout in
+  let style = Style.layout ~user_gap:size layout in
+  let render_key_value (pair : Pair.t) =
+    let key, value = pair ~size in
+    [ {%html.jsx|<div *{Classes.[flex; items_start]}>%{key}</div>|}
+    ; {%html.jsx|<div %{flex} %{flex_col}>*{value}</div>|}
+    ]
+  in
   let items =
     match layout with
     | Two_columns ->
-      let%bind.List key, value = pairs in
-      [ {%html|<div>%{key}</div>|}; {%html|<div>%{value}</div>|} ]
+      let%bind.List pair = pairs in
+      render_key_value pair
     | One_column ->
-      let%map.List key, value = pairs in
-      {%html|
+      let%map.List pair = pairs in
+      {%html.jsx|
         <div %{flex} %{flex_col} %{gap 1.0}>
-          <div>%{key}</div>
-          <div>%{value}</div>
+          *{render_key_value pair}
         </div>
       |}
   in
-  {%html|<div *{style} *{attrs}>*{items}</div>|}
+  {%html.jsx|<div *{style} *{attrs}>*{items}</div>|}
 ;;
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

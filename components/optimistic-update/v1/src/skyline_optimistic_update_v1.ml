@@ -89,15 +89,20 @@ let action { get_current_time; action; _ } ~update effect =
 ;;
 
 let poll_is_up_to_date poll (local_ graph) =
-  let has_no_inflight_query =
-    let%arr { Rpc_effect.Poll_result.Legacy_record.inflight_query; _ } = poll in
-    Option.is_none inflight_query
+  let%sub { Rpc_effect.Poll_result.Legacy_record.inflight_query; _ } = poll in
+  let upon_query_dispatched =
+    Bonsai_kernel_wait_effect.upon (inflight_query >>| Option.is_some) graph
   in
-  let upon_query_completed = Bonsai_kernel_wait_effect.upon has_no_inflight_query graph in
-  let yoink_poll = Bonsai.peek poll graph in
-  let%arr upon_query_completed and yoink_poll in
-  match%bind.Effect yoink_poll with
-  | Active { inflight_query = None; refresh; _ } -> refresh
-  | Active { inflight_query = Some _; _ } -> upon_query_completed
+  let upon_query_completed =
+    Bonsai_kernel_wait_effect.upon (inflight_query >>| Option.is_none) graph
+  in
+  let peek_poll = Bonsai.peek poll graph in
+  let%arr upon_query_completed and upon_query_dispatched and peek_poll in
+  match%bind.Effect peek_poll with
   | Inactive -> Effect.return ()
+  | Active { Rpc_effect.Poll_result.Legacy_record.inflight_query = Some _; _ } ->
+    upon_query_completed
+  | Active { refresh; _ } ->
+    let%bind.Effect () = Effect.all_parallel_unit [ refresh; upon_query_dispatched ] in
+    upon_query_completed
 ;;

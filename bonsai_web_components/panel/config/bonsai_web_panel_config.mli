@@ -261,4 +261,23 @@ val set_child_layouts : 'a t -> Child_layout.t list -> 'a t
 val set_tab_titles : 'a t -> string Nonempty_list.t -> 'a t
 val create_children : 'a t list -> Child_layout.t list -> ('a t * Child_layout.t) list
 val map : 'a t -> f:('a -> 'b) -> 'b t
+val map' : 'a t -> f:('a t -> 'a t) -> 'a t
+val map_or_error : 'a t -> f:('a t -> 'a t Or_error.t) -> 'a t Or_error.t
 val fold : 'a t -> init:'accum -> f:('accum -> 'a -> 'accum) -> 'accum
+val fold' : 'a t -> init:'accum -> f:('accum -> 'a t -> 'accum) -> 'accum
+
+(** Compare two panel config trees by matching nodes on [panel_id].
+
+    - [compare] is called for each node that exists in both trees (matched by [panel_id]).
+    - [additions] is called with nodes present in the second tree but not the first.
+    - [deletions] is called with nodes present in the first tree but not the second.
+
+    All three callbacks thread an accumulator of type ['b]. *)
+val fold_compare
+  :  init:'b
+  -> compare:('a t -> 'a t -> 'b -> 'b)
+  -> additions:('a t list -> 'b -> 'b)
+  -> deletions:('a t list -> 'b -> 'b)
+  -> 'a t
+  -> 'a t
+  -> 'b

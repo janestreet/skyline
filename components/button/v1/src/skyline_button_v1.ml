@@ -450,7 +450,7 @@ let maybe_confirm_guard ~confirm ~on_click (local_ graph) =
     confirm.stage, on_click
 ;;
 
-let dropdown_menu ~disabled menu graph =
+let dropdown_menu ~disabled ~on_open menu graph =
   match%sub menu with
   | [] -> return None
   | _ :: _ as menu ->
@@ -461,14 +461,16 @@ let dropdown_menu ~disabled menu graph =
         menu
         graph
     in
-    let%arr anchor and toggle and disabled in
+    let%arr anchor and toggle and disabled and on_open in
+    let open_effect =
+      if disabled then Effect.Ignore else Effect.Many [ on_open; toggle ]
+    in
     let on_contextmenu =
       Vdom.Attr.on_contextmenu (fun event ->
         Js_of_ocaml.Dom.preventDefault event;
-        toggle)
+        open_effect)
     in
-    Some
-      (Vdom.Attr.combine anchor on_contextmenu, if disabled then Effect.Ignore else toggle)
+    Some (Vdom.Attr.combine anchor on_contextmenu, open_effect)
 ;;
 
 let common_impl
@@ -476,6 +478,7 @@ let common_impl
   ?(confirm = Bonsai.return false)
   ?(loading = Bonsai.return `No)
   ?(dropdown = Bonsai.return [])
+  ?(on_dropdown_open = Bonsai.return Effect.Ignore)
   ?(autofocus = Bonsai.return false)
   ?(disabled = Bonsai.return false)
   ?(secondary = Bonsai.return false)
@@ -498,7 +501,7 @@ let common_impl
       let idle_width, set_idle_width = Bonsai.state 0 graph in
       let track_idle_width_attr =
         let%arr set_idle_width in
-        Bonsai_web_ui_element_size_hooks.Size_tracker.on_change
+        Bonsai_web_element_size_hooks.Size_tracker.on_change
           (fun { border_box = { width; height = _ }; content_box = _ } ->
              set_idle_width (Int.of_float width))
       in
@@ -514,7 +517,7 @@ let common_impl
           item
           ~f:(Skyline_loading_state_v1.handle loading_state))
     in
-    dropdown_menu ~disabled menu graph
+    dropdown_menu ~disabled ~on_open:on_dropdown_open menu graph
   in
   let%arr autofocus
   and disabled
@@ -761,6 +764,7 @@ let with_error_common
   ?confirm
   ?(loading = Bonsai.return `While_on_click_in_flight)
   ?(dropdown = Bonsai.return [])
+  ?on_dropdown_open
   ?autofocus
   ?disabled
   ?secondary
@@ -811,6 +815,7 @@ let with_error_common
     ?confirm
     ~loading
     ~dropdown
+    ?on_dropdown_open
     ?autofocus
     ?disabled
     ?secondary
@@ -828,6 +833,7 @@ let with_error
   ?confirm
   ?loading
   ?dropdown
+  ?on_dropdown_open
   ?autofocus
   ?disabled
   ?secondary
@@ -843,6 +849,7 @@ let with_error
     ?confirm
     ?loading
     ?dropdown
+    ?on_dropdown_open
     ?autofocus
     ?disabled
     ?secondary
@@ -860,6 +867,7 @@ let with_error_compact
   ?confirm
   ?loading
   ?dropdown
+  ?on_dropdown_open
   ?autofocus
   ?disabled
   ?secondary
@@ -875,6 +883,7 @@ let with_error_compact
     ?confirm
     ?loading
     ?dropdown
+    ?on_dropdown_open
     ?autofocus
     ?disabled
     ?secondary

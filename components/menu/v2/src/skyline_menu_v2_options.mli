@@ -55,7 +55,8 @@ end
     - [?test_selector] test selector for this item
     - [?attrs] additional attributes to customize the element (user-provided styling)
     - [?disabled] disables the item (default [false])
-    - [?icon] optional icon to display with the item
+    - [?icon] optional icon to display to the left of the item
+    - [?suffix] optional node rendered to the right of the item content
     - [key] unique identifier for this item, used in keyboard navigation and test
       selectors
     - [on_click] effect triggered when the item is selected
@@ -67,6 +68,7 @@ val item
   -> ?attrs:Vdom.Attr.t list
   -> ?disabled:bool
   -> ?icon:Bonsai_web_icon.t
+  -> ?suffix:Vdom.Node.t
   -> key:string
   -> on_click:unit Effect.t
   -> Vdom.Node.t list
@@ -105,6 +107,7 @@ module Sub_menu : sig
         - [?attrs] additional attributes to customize the element (user-provided styling)
         - [?icon] optional icon to display with the trigger (a chevron icon is
           automatically added to indicate the sub-menu)
+        - [?suffix] optional node rendered to the right of the trigger content
         - [children] list of nodes that make up the trigger's content
 
         Returns a [Trigger.t] for use in a sub-menu. *)
@@ -112,6 +115,7 @@ module Sub_menu : sig
       :  ?test_selector:Test_selector.t
       -> ?attrs:Vdom.Attr.t list
       -> ?icon:Bonsai_web_icon.t
+      -> ?suffix:Vdom.Node.t
       -> Vdom.Node.t list
       -> t
   end
@@ -136,13 +140,18 @@ end
 
 (** [create] creates a menu options configuration that opens sub-menus into popovers.
 
+    - [?test_selector] test selector for the options container
     - [?attrs] additional attributes for the options container (user-provided styling)
     - [contents] list of [Content.t] items to display in the options list
 
     Returns a [t] representing the options configuration. Pass this to
-    [Skyline_menu_v2.component] to render it with state management and keyboard
+    [Skyline_menu_v2.controller] to render it with state management and keyboard
     navigation. *)
-val create : ?attrs:Vdom.Attr.t list -> Content.t list -> t
+val create
+  :  ?test_selector:Test_selector.t
+  -> ?attrs:Vdom.Attr.t list
+  -> Content.t list
+  -> t
 
 module Expert : sig
   (** [component] is a low-level building block for creating stateful menu options

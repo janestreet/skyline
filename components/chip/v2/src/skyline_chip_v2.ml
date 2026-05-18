@@ -67,15 +67,8 @@ end
 module Style = struct
   let base = Attr.many Classes.[ inline_flex; items_center; font_medium; text_xs ]
 
-  let border_radius size ~pill =
-    if pill
-    then {%css|border-radius: 1000px;|}
-    else (
-      match size with
-      | `Xs -> Classes.rounded_xs
-      | `Sm -> Classes.rounded_sm
-      | `Md -> Classes.rounded_md
-      | `Lg -> Classes.rounded_lg)
+  let border_radius ~pill =
+    if pill then {%css|border-radius: 9999px;|} else Classes.rounded_xs
   ;;
 
   let padding size ~pill =
@@ -99,7 +92,7 @@ module Style = struct
       Attr.many [ px; py ]
   ;;
 
-  let of_size size ~pill = Attr.many [ border_radius size ~pill; padding size ~pill ]
+  let of_size size ~pill = Attr.many [ border_radius ~pill; padding size ~pill ]
 
   type colors =
     { background : Css_gen.Color.t
@@ -284,7 +277,7 @@ let view
   (content : Node.t list)
   =
   let attrs = Style.make ~size ~variant ~pill ~color ~attrs in
-  {%html|
+  {%html.jsx|
     <div
       %{Test_selector.attr_of_opt test_selector}
       %{Attr.many attrs}
@@ -296,5 +289,5 @@ let view
 ;;
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

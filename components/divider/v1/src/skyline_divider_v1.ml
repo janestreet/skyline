@@ -1,62 +1,61 @@
 open! Core
-open! Bonsai_web
-open! Bonsai.Let_syntax
+open! Private_skyline_prelude
 
 module Style = struct
-  let ( @> ) = Css_gen.( @> )
-
   let horizontal ~width =
-    Css_gen.box_sizing `Border_box
-    @> Css_gen.width width
-    @> Css_gen.height (`Px 1)
-    @> Css_gen.uniform_margin (`Px 0)
-    @> Css_gen.uniform_padding (`Px 0)
-    @> Css_gen.border ~width:(`Px 0) ~style:`Solid ()
-    @> Css_gen.border_top ~width:(`Px 1) ~style:`Solid ()
-    @> Css_gen.color Skyline_theme_v1.border
-    |> Vdom.Attr.style
+    {%css|
+      box-sizing: border-box;
+      width: %{width#Css_gen.Length};
+      height: 1px;
+      margin: 0;
+      padding: 0;
+      border: 0 solid;
+      border-top: 1px solid;
+      color: %{Colors.Border.default#Css_gen.Color};
+    |}
   ;;
 
   let vertical ~height =
-    Css_gen.box_sizing `Border_box
-    @> Css_gen.width (`Px 1)
-    @> Css_gen.height height
-    @> Css_gen.uniform_margin (`Px 0)
-    @> Css_gen.uniform_padding (`Px 0)
-    @> Css_gen.border ~width:(`Px 0) ~style:`Solid ()
-    @> Css_gen.border_left ~width:(`Px 1) ~style:`Solid ()
-    @> Css_gen.color Skyline_theme_v1.border
-    |> Vdom.Attr.style
+    {%css|
+      box-sizing: border-box;
+      width: 1px;
+      height: %{height#Css_gen.Length};
+      margin: 0;
+      padding: 0;
+      border: 0 solid;
+      border-left: 1px solid;
+      color: %{Colors.Border.default#Css_gen.Color};
+    |}
   ;;
 
   let symbol ~line_height =
-    Css_gen.color
-      (Skyline_theme_v1.ramp Skyline_theme_v1.primary (Percent.of_percentage 50.))
-    @> Css_gen.line_height line_height
-    @> Css_gen.user_select `None
-    |> Vdom.Attr.style
+    {%css|
+      color: %{Colors.Text.secondary#Css_gen.Color};
+      line-height: %{line_height#Css_gen.Length};
+      user-select: none;
+    |}
   ;;
 end
 
-let horizontal ?(length = `Percent Percent.one_hundred_percent) () =
-  Vdom.Node.hr ~attrs:[ Style.horizontal ~width:length ] ()
+let horizontal ?(attrs = []) ?(length = `Percent Percent.one_hundred_percent) () =
+  {%html.jsx|<hr %{Style.horizontal ~width:length} *{attrs} />|}
 ;;
 
-let vertical ?(length = `Percent Percent.one_hundred_percent) () =
-  Vdom.Node.hr ~attrs:[ Style.vertical ~height:length ] ()
+let vertical ?(attrs = []) ?(length = `Percent Percent.one_hundred_percent) () =
+  {%html.jsx|<hr %{Style.vertical ~height:length} *{attrs} />|}
 ;;
 
 let interpunct =
-  Vdom.Node.span
-    ~attrs:
-      [ Style.symbol
+  {%html.jsx|
+    <span %{Style.symbol
         (* Set small line height so that the interpunct is centered correctly e.g. when in
            a flex container with [Small] text. *)
-          ~line_height:(`Px 4)
-      ]
-    [ Vdom.Node.text "\u{00B7}" ]
+          ~line_height:(`Px 4)}>#{"\u{00B7}"}</span>
+  |}
 ;;
 
-let slash =
-  Vdom.Node.span ~attrs:[ Style.symbol ~line_height:(`Em 1) ] [ Vdom.Node.text "/" ]
-;;
+let slash = {%html.jsx|<span %{Style.symbol ~line_height:(`Em 1)}>#{"/"}</span>|}
+
+module For_docs = struct
+  let ml_filepath = [%here].pos_fname
+end

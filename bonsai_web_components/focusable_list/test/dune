@@ -1,0 +1,6 @@
+(library
+ (name bonsai_web_focusable_list_test)
+ (public_name skyline.bonsai_web_components.focusable_list_test)
+ (libraries bonsai_web bonsai_web_focusable_list core bonsai_web_test.jsdom)
+ (preprocess
+  (pps ppx_jane bonsai.ppx_bonsai ppx_with)))

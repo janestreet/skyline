@@ -24,7 +24,7 @@ let container_with_rounded_corners contents =
 
 let render_code_block ~language ~style document =
   let language =
-    let open Bonsai_web_ui_codemirror_read_only.Language in
+    let open Bonsai_web_codemirror_read_only.Language in
     match language with
     | "ocaml" -> OCaml
     | "diff" -> Diff
@@ -60,7 +60,7 @@ let render_code_block ~language ~style document =
         ]
   in
   let codemirror =
-    Bonsai_web_ui_codemirror_read_only.make
+    Bonsai_web_codemirror_read_only.make
       ~extension
       ~theme:Vscode_default
       ~language

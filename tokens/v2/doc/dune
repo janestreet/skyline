@@ -1,0 +1,5 @@
+(library
+ (name skyline_tokens_v2_doc)
+ (libraries virtual_dom.css_gen skyline_tokens_v2)
+ (preprocess
+  (pps ppx_jane ppx_css)))

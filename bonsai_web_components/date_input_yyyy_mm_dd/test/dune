@@ -1,0 +1,7 @@
+(library
+ (name bonsai_web_contrib_date_input_yyyy_mm_dd_test)
+ (public_name skyline.bonsai_web_components.date_input_yyyy_mm_dd_test)
+ (libraries bonsai bonsai_web bonsai_web_contrib_date_input_yyyy_mm_dd
+   bonsai_web_test core js_of_ocaml)
+ (preprocess
+  (pps bonsai.ppx_bonsai ppx_jane ppx_css js_of_ocaml-ppx ppx_html)))

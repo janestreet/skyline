@@ -1,11 +1,3 @@
-[@@@alert
-  skyline_beta
-    {|
-This component is currently in a beta phase. Its styling may change in breaking ways.
-If you're interested in using this component please reach out to Skyline devs.
-We appreciate your enthusiasm. Thanks.
-|}]
-
 open! Core
 open! Bonsai_web
 
@@ -19,7 +11,6 @@ open! Bonsai_web
     - Various sizes (xs, sm, md, lg)
     - Loading and disabled states
     - Optional tooltips
-    - Confirmation prompts (in the stateful [component] version)
     - Automatic rendering as HTML links (<a>) when passed [Effect.open_url]
 
     {b Layout behavior}
@@ -125,15 +116,12 @@ val view
   -> on_click:unit Effect.t
   -> Vdom.Node.t
 
-(** [component] creates a stateful button with enhanced features. Use this when you need:
-    - Confirmation prompts before executing actions
-    - Automatic loading state management
+(** [component] creates a stateful button with enhanced features. Use this when you need
+    automatic loading state management.
 
-    The stateful component tracks loading state internally and can show a confirmation
-    prompt before executing potentially destructive actions.
+    The stateful component tracks loading state internally.
 
     - [test_selector] Test selector for automated testing
-    - [confirm] When [true], shows "Confirm" and requires a second click
     - [disabled] Whether the button is disabled, defaults to [false]
     - [loading] Loading state control, defaults to [No]. Use [While_effect_in_progress] to
       automatically track the [on_click] effect. When loading is active, the button is
@@ -153,18 +141,6 @@ val view
     - [on_click] Action to perform when clicked. When passed {!Effect.open_url}, renders
       as an HTML [<a/>] tag
 
-    {b Example with confirmation:}
-    {[
-      let delete_button graph =
-        component
-          ~confirm:(Bonsai.return true)
-          ~intent:(Bonsai.return `Danger)
-          ~on_click:(Bonsai.return delete_all_effect)
-          (Bonsai.return [ Node.text "Delete All" ])
-          graph
-      ;;
-    ]}
-
     {b Example with automatic loading state:}
     {[
       let save_button graph =
@@ -177,7 +153,6 @@ val view
     ]} *)
 val component
   :  ?test_selector:Test_selector.t Bonsai.t
-  -> ?confirm:bool Bonsai.t
   -> ?disabled:bool Bonsai.t
   -> ?loading:Loading.t Bonsai.t
   -> ?attrs:Vdom.Attr.t list Bonsai.t

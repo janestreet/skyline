@@ -46,7 +46,7 @@ module Item = struct
       | true -> Some (Style.tab_active size)
       | false -> None
     in
-    {%html|
+    {%html.jsx|
       <div
         ?{selected_attr}
         style="
@@ -96,13 +96,13 @@ let view_and_state
       let is_disabled = is_disabled item in
       let on_click = set_value item in
       let item_label = label item in
-      {%html|
+      {%html.jsx|
         <Item.view ?test_selector ~attrs ~size ~is_selected ~is_disabled ~on_click
           >%{item_label}</>
       |})
   in
   let view =
-    {%html|
+    {%html.jsx|
       <div
         *{Classes.[flex]}
         %{Style.border_bottom}
@@ -170,5 +170,5 @@ let component
 ;;
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

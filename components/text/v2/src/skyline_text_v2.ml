@@ -174,7 +174,7 @@ let view
   ?(layout = `Inline)
   children
   =
-  [%html
+  [%html.jsx
     {|
       <span
         *{attrs}
@@ -198,7 +198,7 @@ let monospace
   ?(layout = `Inline)
   children
   =
-  [%html
+  [%html.jsx
     {|
       <span
         *{attrs}
@@ -217,7 +217,7 @@ let monospace
 let target_to_icon = function
   | Effect.Open_url_target.New_tab_or_window ->
     Some
-      {%html|
+      {%html.jsx|
         <Bonsai_web_icon.view
           style="display: inline; margin-left: 0.2em"
           ~size:%{`Em_float 0.75}
@@ -250,7 +250,7 @@ let link
       (* Without href, ensure focusability for keyboard users. *)
       [ Attr.tabindex 0; Attr.on_click (fun _ -> on_click) ], None
   in
-  {%html|
+  {%html.jsx|
     <a
       *{attrs}
       *{on_click_attrs}
@@ -267,7 +267,7 @@ let link
 ;;
 
 let h1 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html
+  [%html.jsx
     {|
       <h1
         *{attrs}
@@ -283,7 +283,7 @@ let h1 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h2 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html
+  [%html.jsx
     {|
       <h2
         *{attrs}
@@ -299,7 +299,7 @@ let h2 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h3 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html
+  [%html.jsx
     {|
       <h3
         *{attrs}
@@ -315,7 +315,7 @@ let h3 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h4 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html
+  [%html.jsx
     {|
       <h4
         *{attrs}
@@ -331,7 +331,7 @@ let h4 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h5 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html
+  [%html.jsx
     {|
       <h5
         *{attrs}
@@ -347,7 +347,7 @@ let h5 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h6 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html
+  [%html.jsx
     {|
       <h6
         *{attrs}
@@ -371,7 +371,7 @@ let inline_code
   children
   =
   let default_size = {%css|font-size: 0.875em;|} in
-  [%html
+  [%html.jsx
     {|
       <code
         *{attrs}
@@ -387,5 +387,5 @@ let inline_code
 ;;
 
 module For_docs = struct
-  let ml_filepath = __FILE__
+  let ml_filepath = [%here].pos_fname
 end

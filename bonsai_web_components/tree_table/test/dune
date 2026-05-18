@@ -1,8 +1,7 @@
 (library
- (name bonsai_web_ui_tree_table_test)
+ (name bonsai_web_contrib_tree_table_test)
  (public_name skyline.bonsai_web_components.tree_table_test)
  (preprocess
   (pps ppx_jane ppx_quick_test))
- (libraries bonsai_web_ui_tree_table core
-   expect_test_helpers_core.expect_test_helpers_base expectable incr_map
-   incremental))
+ (libraries bonsai_web_contrib_tree_table core expect_test_helpers_base
+   expectable incr_map incremental))

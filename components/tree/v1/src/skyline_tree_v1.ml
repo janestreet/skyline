@@ -169,10 +169,10 @@ module Style = struct
 end
 
 let tree_row_path_segment ~matching_indices key row : Path_segment.t =
-  let _, intent, branch = Bonsai_web_ui_tree_table.Row.data row in
+  let _, intent, branch = Bonsai_web_contrib_tree_table.Row.data row in
   let segments =
     List.fold_until
-      (Bonsai_web_ui_tree_table.Row.ancestors row)
+      (Bonsai_web_contrib_tree_table.Row.ancestors row)
       ~init:[ Nonempty_list.last key ]
       ~f:(fun acc (_, (_, _, branch)) ->
         match (branch : _ Branch.t) with
@@ -182,7 +182,7 @@ let tree_row_path_segment ~matching_indices key row : Path_segment.t =
     |> Nonempty_list.of_list_exn
   in
   let parent_path_length =
-    Bonsai_web_ui_tree_table.Row.ancestors row
+    Bonsai_web_contrib_tree_table.Row.ancestors row
     |> List.hd
     |> Option.value_map ~f:(fun (key, _) -> Path.string_length key + 1) ~default:0
   in
@@ -217,7 +217,7 @@ let list_row_path_segment ~decoration ~matching_indices key : Path_segment.t =
 ;;
 
 let is_child_of_collapsed ~collapsed_paths row =
-  Bonsai_web_ui_tree_table.Row.ancestors row
+  Bonsai_web_contrib_tree_table.Row.ancestors row
   |> List.exists ~f:(fun (key, (_, _, branch)) ->
     match branch with
     | Branch.Empty _ ->
@@ -231,7 +231,7 @@ let tree_row_contents ~collapsed ~toggle_collapsed ~content key row =
   let indent =
     let non_empty_parents =
       List.count
-        (Bonsai_web_ui_tree_table.Row.ancestors row)
+        (Bonsai_web_contrib_tree_table.Row.ancestors row)
         ~f:(fun (_, (_, _, branch)) ->
           match (branch : _ Branch.t) with
           | Parent _ | Leaf_parent _ | Leaf _ -> true
@@ -285,7 +285,7 @@ let tree_row
   =
   let branch : _ Branch.t Bonsai.t =
     let%arr collapsed_paths and key and row in
-    match Bonsai_web_ui_tree_table.Row.data row with
+    match Bonsai_web_contrib_tree_table.Row.data row with
     | _, _, (Branch.Empty _ as empty) -> empty
     | _, _, branch ->
       if is_child_of_collapsed ~collapsed_paths row then Empty key else branch
@@ -457,21 +457,21 @@ let tree_of_items' filter_and_items_by_path =
     | Some query ->
       let score = Fuzzy_search.score query ~item:(Path.to_string key) in
       if score > 0
-      then Bonsai_web_ui_tree_table.Tree.set tree ~key ~data:(score, item)
+      then Bonsai_web_contrib_tree_table.Tree.set tree ~key ~data:(score, item)
       else tree
-    | None -> Bonsai_web_ui_tree_table.Tree.set tree ~key ~data:(0, item)
+    | None -> Bonsai_web_contrib_tree_table.Tree.set tree ~key ~data:(0, item)
   in
   let build_non_incr ~filter items_by_path =
     Map.fold
       items_by_path
-      ~init:(Bonsai_web_ui_tree_table.Tree.empty (module String))
+      ~init:(Bonsai_web_contrib_tree_table.Tree.empty (module String))
       ~f:(fun ~key ~data tree -> add_item_to_tree ~filter ~key ~item:data tree)
   in
   Incr.Map.unordered_fold_with_extra
-    ~init:(Bonsai_web_ui_tree_table.Tree.empty (module String))
+    ~init:(Bonsai_web_contrib_tree_table.Tree.empty (module String))
     ~add:(fun ~key ~data tree filter -> add_item_to_tree ~filter ~key ~item:data tree)
     ~remove:(fun ~key ~data:_ tree _filter ->
-      Bonsai_web_ui_tree_table.Tree.remove tree key)
+      Bonsai_web_contrib_tree_table.Tree.remove tree key)
     ~extra_changed:(fun ~old_extra:_ ~new_extra:filter ~input _ ->
       build_non_incr ~filter input)
     items_by_path
@@ -485,10 +485,17 @@ type child_intent =
   ; accent : int
   }
 
-let tree_of_items ~merge_empty_paths ~decoration ~search items_by_path graph =
+let tree_of_items
+  ~merge_empty_paths
+  ~decoration
+  ~has_external_children
+  ~search
+  items_by_path
+  graph
+  =
   let how_to_map =
     let score_of_branch branch =
-      let score, _, _ = Bonsai_web_ui_tree_table.Tree.data branch in
+      let score, _, _ = Bonsai_web_contrib_tree_table.Tree.data branch in
       score
     in
     let intent_of_color color =
@@ -503,7 +510,7 @@ let tree_of_items ~merge_empty_paths ~decoration ~search items_by_path graph =
       else None
     in
     let intent_of_branch branch : _ option =
-      let _, intent, _ = Bonsai_web_ui_tree_table.Tree.data branch in
+      let _, intent, _ = Bonsai_web_contrib_tree_table.Tree.data branch in
       match intent with
       | `Primary `None | `Secondary None -> None
       | `Primary (`Foreground intent) | `Primary (`Background intent) ->
@@ -531,7 +538,12 @@ let tree_of_items ~merge_empty_paths ~decoration ~search items_by_path graph =
         | Inherit -> `Secondary children_intent
       in
       match data, has_leaf_child with
-      | Some (score, item), `No_children -> score, intent, Branch.Leaf (key, item)
+      | Some (score, item), `No_children ->
+        if has_external_children key item
+        then
+          (* If the children are external we can't score them. *)
+          score, intent, Branch.Leaf_parent (key, item)
+        else score, intent, Branch.Leaf (key, item)
       | Some (score, item), _ ->
         score + children_total_score, intent, Leaf_parent (key, item)
       | None, `Single_non_leaf_child ->
@@ -545,7 +557,7 @@ let tree_of_items ~merge_empty_paths ~decoration ~search items_by_path graph =
       then (
         match Map.data children with
         | [ branch ] ->
-          let _, _, branch = Bonsai_web_ui_tree_table.Tree.data branch in
+          let _, _, branch = Bonsai_web_contrib_tree_table.Tree.data branch in
           (match branch with
            | Branch.Leaf _ | Leaf_parent _ -> `Single_leaf_child
            | Parent _ | Empty _ -> `Single_non_leaf_child)
@@ -603,7 +615,7 @@ let tree_of_items ~merge_empty_paths ~decoration ~search items_by_path graph =
         ~key
         ~data
     in
-    Bonsai_web_ui_tree_table.How_to_map.incrementally_with_nonincremental_fallback
+    Bonsai_web_contrib_tree_table.How_to_map.incrementally_with_nonincremental_fallback
       ~incremental
       ~nonincremental
       ()
@@ -612,15 +624,17 @@ let tree_of_items ~merge_empty_paths ~decoration ~search items_by_path graph =
     (Bonsai.both search items_by_path)
     ~f:(fun filter_and_items_by_path ->
       tree_of_items' filter_and_items_by_path
-      |> Bonsai_web_ui_tree_table.map ~how_to_map
-      |> Bonsai_web_ui_tree_table.tree_to_map ~how_to_deal_with_nones:Preserve)
+      |> Bonsai_web_contrib_tree_table.map ~how_to_map
+      |> Bonsai_web_contrib_tree_table.tree_to_map ~how_to_deal_with_nones:Preserve)
     graph
 ;;
 
 let compare_tree_rows ~compare =
-  let key = Bonsai_web_ui_tree_table.Row.key in
-  let compare_row = Bonsai_web_ui_tree_table.Row.lift_comparison compare in
-  let compare = Bonsai_web_ui_tree_table.Row.sort_override Path.compare compare_row in
+  let key = Bonsai_web_contrib_tree_table.Row.key in
+  let compare_row = Bonsai_web_contrib_tree_table.Row.lift_comparison compare in
+  let compare =
+    Bonsai_web_contrib_tree_table.Row.sort_override Path.compare compare_row
+  in
   fun lhs rhs -> compare (key lhs, lhs) (key rhs, rhs)
 ;;
 
@@ -674,6 +688,7 @@ let component
     fun _ data : Decoration.t -> if Option.is_some data then Primary else Secondary)
   ?(alternating_row_background = false)
   ?(disable_keyboard_navigation = false)
+  ?(has_external_children = fun _ _ -> false)
   ?segment:(render_segment =
       fun _ segment (local_ _graph) ->
         let%arr segment in
@@ -738,7 +753,13 @@ let component
       in
       Bonsai.assoc
         (module Path)
-        (tree_of_items ~merge_empty_paths ~search ~decoration items_by_path graph)
+        (tree_of_items
+           ~merge_empty_paths
+           ~search
+           ~decoration
+           ~has_external_children
+           items_by_path
+           graph)
         ~f:(fun key row (local_ graph) ->
           let%arr row
           and view =
