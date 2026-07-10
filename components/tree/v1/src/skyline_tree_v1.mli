@@ -57,8 +57,9 @@ end
     - The default [layout] renders the items arranged as a tree, which children indented
       under their parents. There is also an alternative list layout.
 
-    - If [search] is provided, items in the tree are filtered by their path and only items
-      matching the provided search term are rendered.
+    - If [filter] is provided, items in the tree are filtered and search-ranked by the
+      full path, including non-leaf path segments. Also see [to_item_text] to override
+      leaf node text content for filtering.
 
     - By default, items are sorted based on their path. Custom [compare] and
       [compare_path] arguments can be used to override the sort behaviour. Branches with
@@ -72,6 +73,10 @@ end
       when the tree items are interacted with by the user. If no [on_click] action is
       provided, or [on_click] resolves to [None], the default action collapses child
       elements in the tree when a parent is clicked.
+
+    - [disabled] disables row interactions. Disabled rows do not run [on_click],
+      [on_contextmenu], cannot be collapsed or uncollapsed, cannot take focus, and are
+      skipped by keyboard navigation. Disabled styling is left up to [item].
 
     {3 Options to configure the tree view visually}
 
@@ -87,6 +92,11 @@ end
 
     [item] is used to render rows in the tree that correspond to a given element in the
     map.
+
+    - [to_item_text] overrides the text content of the leaf nodes (items) for filtering
+      and for the default display (via [Path.Segment.component]), but *not* comparison.
+      Supports matching substring highlighting nicely when filtering. Can be used instead
+      of [~item] if you only want to tweak display text
 
     [segment] is used to render rows in the tree that don't have a corresponding map
     element i.e. rows that only exist to structure the tree.
@@ -105,7 +115,9 @@ val component
   -> ?compare_path:(Path.t -> Path.t -> int)
   -> ?compare:('a -> 'a -> int)
   -> ?filter:string Bonsai.t
+  -> ?to_item_text:(Path.t -> 'a -> string)
   -> ?on_click:(Path.t -> 'a option -> unit Effect.t option) Bonsai.t
+  -> ?disabled:(Path.t -> 'a option -> bool) Bonsai.t
   -> ?on_contextmenu:
        (Path.t -> 'a option -> unit Skyline_context_menu_v1.t Effect.t) Bonsai.t
   -> ?highlight:Path.t Bonsai.t

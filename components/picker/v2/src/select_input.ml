@@ -48,6 +48,13 @@ module Controller = struct
           (return Skyline_popover_v2.Match_anchor_side.Grow_to_match)
         ~close_on_click_outside:(return true)
         (fun ~hide:close graph ->
+          let ( (* Ensure the selected item is focused on open. *) ) =
+            let on_activate =
+              let%arr selected and inject_focusable in
+              inject_focusable (Focus selected) |> Effect.ignore_m
+            in
+            Bonsai.Edge.lifecycle ~on_activate graph
+          in
           let on_keydown =
             let%arr close and focusable_list and inject_focusable and set_selected in
             fun event ->
@@ -98,10 +105,13 @@ module Controller = struct
             | Some focused_value -> M.compare focused_value value = 0
             | None -> false
           in
-          let item_attr value =
-            Attr.many [ Attr.on_click (fun _ -> on_select value); item_attr value ]
+          let item_attr ~disabled value =
+            let on_click =
+              if disabled then Attr.empty else Attr.on_click (fun _ -> on_select value)
+            in
+            Attr.many [ on_click; item_attr value ]
           in
-          {%html.jsx|<div %{Classes.pt 0.5}>%{Options.view ~attrs ~is_focused ~item_attr options}</div>|})
+          {%html|<div %{Classes.pt 0.5}>%{Options.view ~attrs ~is_focused ~item_attr options}</div>|})
         graph
     in
     let close_popover =
@@ -162,13 +172,13 @@ module Elements = struct
           let option_sizers =
             List.take items_for_sizer max_sizer_items
             |> List.map ~f:(fun value ->
-              {%html.jsx|
+              {%html|
                 <div *{Classes.[flex; justify_between; gap 1.]}>
                   %{value} *{suffix_content}
                 </div>
               |})
           in
-          {%html.jsx|
+          {%html|
             <div
               style="grid-area: 1 / 1; visibility: hidden; height: 0; overflow: hidden"
               %{Attr.create "aria-hidden" "true"}
@@ -178,7 +188,7 @@ module Elements = struct
           |}
       in
       let content =
-        {%html.jsx|
+        {%html|
           <div style="display: grid" *{Classes.[w_full]}>
             %{sizer}
             <div style="grid-area: 1 / 1" *{Classes.[flex; justify_between; items_center; gap 1.]}>
@@ -187,14 +197,23 @@ module Elements = struct
           </div>
         |}
       in
-      {%html.jsx|
+      let border_color =
+        match intent with
+        | `Primary -> Colors.Border.primary
+        | `Secondary -> Colors.Border.default
+        | `Danger -> Colors.Border.danger
+        | `Success -> Colors.Border.success
+        | `Warning -> Colors.Border.warning
+      in
+      {%html|
         <Skyline_button_v2.view
+          ~type_attr:%{Submit}
           ~variant:%{Skyline_button_v2.Variant.Outlined}
           ~disabled
           ~intent
           ~size
           ~on_click:%{Effect.Ignore}
-          style="width: 100%"
+          style="border-color: %{border_color#Css_gen.Color}; width: 100%"
           %{Test_selector.attr_of_opt test_selector}
           *{attrs}
         >
@@ -219,7 +238,7 @@ let content ?test_selector ?(attrs = []) ~render_anchor_content ~controller () =
       ~size
       ~intent
       ~disabled
-      [ {%html.jsx|<Skyline_button_v2.Icon.view ~icon:%{Lucide.chevron_down} />|} ])
+      [ {%html|<Skyline_button_v2.Icon.view ~icon:%{Lucide.chevron_down} />|} ])
 ;;
 
 module Optional = struct
@@ -253,12 +272,12 @@ module Optional = struct
       ?attrs
       ~render_anchor_content:(function
         | Some value ->
-          {%html.jsx|
+          {%html|
             <Skyline_text_v2.view ~color:%{`Default}
               >%{render_anchor_content value}</>
           |}
         | None ->
-          {%html.jsx|
+          {%html|
             <Skyline_text_v2.view ~color:%{`Secondary}
               >#{placeholder}</>
           |})

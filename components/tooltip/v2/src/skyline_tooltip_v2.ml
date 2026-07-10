@@ -218,7 +218,7 @@ module Style = struct
   ;;
 end
 
-let arrow_node = [%html.jsx {|<div %{Style.arrow}></div>|}]
+let arrow_node = [%html {|<div %{Style.arrow}></div>|}]
 
 let attr
   ?test_selector
@@ -233,7 +233,7 @@ let attr
   =
   let attrs = Style.make ~color ~attrs in
   let view =
-    {%html.jsx|
+    {%html|
       <div
         *{Classes.[flex; flex_col; text_xs]}
         %{Test_selector.attr_of_opt test_selector}
@@ -298,7 +298,7 @@ let text_attr
     ?alignment
     ?behavior
     ?arrow
-    [%html.jsx {|<span %{Style.text}> #{content} </span>|}]
+    [%html {|<span %{Style.text}> #{content} </span>|}]
 ;;
 
 module For_docs = struct

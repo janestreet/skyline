@@ -40,14 +40,37 @@ module Variant : sig
   [@@deriving enumerate, to_string]
 end
 
-(** Loading state for buttons. Used by the [component] function to control when the button
-    shows a loading indicator. *)
 module Loading : sig
+  (** State used to show a loading indicator while [on_click] effects are in progress.
+
+      Note: if a single [Loading_state] is passed to multiple buttons, they will all
+      display a loading state as long as one of them has an effect in progress. *)
+  module Loading_state : sig
+    type t
+
+    val component : Bonsai.graph @ local -> t Bonsai.t
+  end
+
   type t =
     | Yes
     | No
-    | While_effect_in_progress
-  [@@deriving enumerate, to_string]
+    | While_effect_in_progress of Loading_state.t
+    (** [While_effect_in_progress state] wraps [on_click] so the button shows a loading
+        indicator while the click effect is in progress. *)
+
+  (** Helper to produce a [While_effect_in_progress] with the initialized state. *)
+  val while_effect_in_progress : Bonsai.graph @ local -> t Bonsai.t
+end
+
+(** HTML [type] attribute for the underlying [<button/>] element.
+
+    - [Button] for ordinary non-submit buttons, especially buttons inside forms whose
+      click action should not submit the form.
+    - [Submit] when the button should submit an enclosing [<form/>]. *)
+module Type_attr : sig
+  type t =
+    | Button
+    | Submit
 end
 
 (** Renders an icon inside a {!view} which inherits the button's size and styling. Icons
@@ -66,8 +89,7 @@ module Icon : sig
   val view : ?attrs:Vdom.Attr.t list -> icon:Bonsai_web_icon.t -> unit -> Vdom.Node.t
 end
 
-(** [view] creates a stateless button component. Use this when you don't need state
-    management features like confirmation prompts or automatic loading state tracking.
+(** [view] creates a button component.
 
     - [test_selector] Optional test selector for unit tests
     - [attrs] Additional Vdom attributes to apply to the button
@@ -79,13 +101,18 @@ end
     - [variant] Visual style variant, defaults to [Filled]
     - [rounded] Whether to use fully rounded corners (pill shape)
     - [disabled] Whether the button is disabled, defaults to [false]
-    - [loading] Whether the button shows a loading indicator, defaults to [false]. When
-      [true], the button is also disabled.
+    - [loading] Whether the button shows a loading indicator, defaults to [No]. When in a
+      loading state the button is also disabled. See [Loading] for more details.
     - [intent] Color intent for semantic meaning, defaults to [`Secondary]
     - [tooltip] Text to show on hover
     - [tooltip_position] Position of the tooltip relative to the button
     - [show_external_link_icon] Whether to show an external link icon when opening links
       in new tabs. Defaults to [true]
+    - [type_attr] HTML [type] attribute for the underlying [<button/>] element. Use
+      [Submit] for form-submit buttons and [Button] for non-submit buttons. Defaults to
+      [Button]. If [attrs] contains [Vdom.Attr.type_], the default is not applied. If both
+      [type_attr] and [Vdom.Attr.type_] are provided explicitly, [attrs] takes precedence
+      and [Vdom.Attr] emits a duplicate-attribute warning.
     - [on_click] Action to perform when clicked. When passed {!Effect.open_url}, the
       button renders as an HTML [<a/>] tag
 
@@ -107,67 +134,65 @@ val view
   -> ?variant:Variant.t
   -> ?rounded:bool
   -> ?disabled:bool
-  -> ?loading:bool
+  -> ?loading:Loading.t
   -> ?intent:Skyline_intent.t
   -> ?tooltip:string
   -> ?tooltip_position:Skyline_tooltip_v2.Position.t
   -> ?show_external_link_icon:bool
+  -> ?type_attr:Type_attr.t
   -> Vdom.Node.t list
   -> on_click:unit Effect.t
   -> Vdom.Node.t
 
-(** [component] creates a stateful button with enhanced features. Use this when you need
-    automatic loading state management.
+(** Copy creates buttons used for copying text. *)
+module Copy : sig
+  module State : sig
+    type t
 
-    The stateful component tracks loading state internally.
+    (** Create the state to copy the provided text. *)
+    val component : text:string Bonsai.t -> Bonsai.graph @ local -> t Bonsai.t
+  end
 
-    - [test_selector] Test selector for automated testing
-    - [disabled] Whether the button is disabled, defaults to [false]
-    - [loading] Loading state control, defaults to [No]. Use [While_effect_in_progress] to
-      automatically track the [on_click] effect. When loading is active, the button is
-      also disabled.
-    - [attrs] Additional Vdom attributes
-    - [size] Button size, defaults to [`Md]
-    - [slim] Whether to reduce horizontal padding for a narrower button. Most useful for
-      icon-only or single-character buttons (e.g., a chevron dropdown trigger). Defaults
-      to [false]
-    - [variant] Visual style variant, defaults to [Filled]
-    - [rounded] Whether to use fully rounded corners
-    - [intent] Color intent, defaults to [`Secondary]
-    - [tooltip] Hover tooltip text
-    - [tooltip_position] Tooltip position
-    - [show_external_link_icon] Whether to show an external link icon when opening links
-      in new tabs. Defaults to [true]
-    - [on_click] Action to perform when clicked. When passed {!Effect.open_url}, renders
-      as an HTML [<a/>] tag
+  (** [view] creates the copy button component.
 
-    {b Example with automatic loading state:}
-    {[
-      let save_button graph =
-        component
-          ~loading:(Bonsai.return While_effect_in_progress)
-          ~on_click:save_to_server_effect
-          (Bonsai.return [ Node.text "Save" ])
-          graph
-      ;;
-    ]} *)
-val component
-  :  ?test_selector:Test_selector.t Bonsai.t
-  -> ?disabled:bool Bonsai.t
-  -> ?loading:Loading.t Bonsai.t
-  -> ?attrs:Vdom.Attr.t list Bonsai.t
-  -> ?size:Skyline_size.t Bonsai.t
-  -> ?slim:bool Bonsai.t
-  -> ?variant:Variant.t Bonsai.t
-  -> ?rounded:bool Bonsai.t
-  -> ?intent:Skyline_intent.t Bonsai.t
-  -> ?tooltip:string Bonsai.t
-  -> ?tooltip_position:Skyline_tooltip_v2.Position.t Bonsai.t
-  -> ?show_external_link_icon:bool Bonsai.t
-  -> Vdom.Node.t list Bonsai.t
-  -> on_click:unit Effect.t Bonsai.t
-  -> Bonsai.graph @ local
-  -> Vdom.Node.t Bonsai.t
+      - [test_selector] Optional test selector for unit tests
+      - [attrs] Additional Vdom attributes to apply to the button
+      - [size] Button size, defaults to [`Md]. Options: [`Xs], [`Sm], [`Md], [`Lg]
+      - [slim] Whether to reduce horizontal padding for a narrower button (default false).
+        When [false], min-width is set to the height which may cause a square appearance.
+        When [true], the padding is reduced and the min-width restriction is lifted for a
+        tighter fit. Most useful for icon-only buttons.
+      - [variant] Visual style variant, defaults to [Filled]
+      - [rounded] Whether to use fully rounded corners (pill shape)
+      - [disabled] Whether the button is disabled, defaults to [false]
+      - [loading] Whether the button shows a loading indicator, defaults to [false]. When
+        [true], the button is also disabled.
+      - [intent] Color intent for semantic meaning, defaults to [`Secondary]
+      - [on_copied_tooltip] Tooltip to show when the copy has completed.
+      - [on_copied_tooltip_position] Position of the tooltip relative to the button
+      - [type_attr] HTML [type] attribute for the underlying [<button/>] element. Use
+        [Submit] for form-submit buttons and [Button] for non-submit buttons. Defaults to
+        [Button]. If [attrs] contains [Vdom.Attr.type_], the default is not applied. If
+        both [type_attr] and [Vdom.Attr.type_] are provided explicitly, [attrs] takes
+        precedence and [Vdom.Attr] emits a duplicate-attribute warning.
+      - [state] the [State.t] containing the text to copy *)
+  val view
+    :  ?test_selector:Test_selector.t
+    -> ?attrs:Vdom.Attr.t list
+    -> ?size:Skyline_size.t
+    -> ?slim:bool
+    -> ?variant:Variant.t
+    -> ?rounded:bool
+    -> ?disabled:bool
+    -> ?loading:bool
+    -> ?intent:Skyline_intent.t
+    -> ?on_copied_tooltip:string
+    -> ?on_copied_tooltip_position:Skyline_tooltip_v2.Position.t
+    -> ?type_attr:Type_attr.t
+    -> Vdom.Node.t list
+    -> state:State.t
+    -> Vdom.Node.t
+end
 
 (** [group_style] provides CSS styling for visually grouping buttons together.
 
@@ -198,6 +223,10 @@ val component
       |}
     ]} *)
 val group_style : Vdom.Attr.t
+
+module For_testing : sig
+  val has_one_child_classname : string
+end
 
 module For_docs : sig
   val ml_filepath : string

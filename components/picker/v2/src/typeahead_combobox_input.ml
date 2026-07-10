@@ -2,7 +2,7 @@ open! Core
 open! Private_skyline_prelude
 
 type ('a, 'selection) render_selection =
-  | Render_multi_selection :
+  | Render_multi :
       { on_backspace : unit Effect.t
       ; render : 'a list -> Vdom.Node.t
       }
@@ -33,6 +33,7 @@ let content
   ?(attrs = [])
   ?(input_attrs = [])
   ?(render_selection : (a, selection) render_selection option)
+  ?(tab_selects_current_item = false)
   ~placeholder
   ~(controller : (a, selection) Typeahead_controller.t)
   ()
@@ -51,6 +52,7 @@ let content
           *{input_attrs}
           %{Typeahead_controller.Private.for_combobox_input
               ~on_backspace_when_empty:(Typeahead_controller.Private.deselect_last controller)
+              ~tab_selects_current_item
               controller}
           ~placeholder
           ~state
@@ -69,8 +71,7 @@ let content
     let selected, _ = Typeahead_controller.state controller in
     let on_backspace_when_empty, custom_render =
       match render_selection with
-      | Some (Render_multi_selection { on_backspace; render }) ->
-        on_backspace, Some render
+      | Some (Render_multi { on_backspace; render }) -> on_backspace, Some render
       | None -> Typeahead_controller.Private.deselect_last controller, None
     in
     let num_chips = List.length selected in
@@ -220,6 +221,7 @@ let content
                    %{Typeahead_controller.Private.for_combobox_input
                        ~on_backspace_when_empty
                        ?on_arrow_left_at_start
+                       ~tab_selects_current_item
                        controller}
                    %{text_size}
                    %{maybe_disabled_attr}
@@ -236,7 +238,7 @@ let content
                    "
                    placeholder=%{placeholder}
                    type="text"
-                   %{Attr.value_prop value}
+                   %{Attr.value value}
                    on_input=%{fun _ new_value -> set_value new_value}
                  />
                  <Bonsai_web_icon.view

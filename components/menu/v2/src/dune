@@ -3,8 +3,7 @@
  (public_name skyline.menu_v2)
  (preprocess
   (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css ppx_html))
- (libraries bonsai bonsai_web bonsai_web_components.icon
-   bonsai_web_components.menu bonsai_web_components.toplayer toplayer.popover
-   browser.expert core virtual_dom.css_gen js_of_ocaml
-   bonsai_web_components.lucide private_skyline_dom private_skyline_prelude
-   private_skyline_utility_classes skyline_size))
+ (libraries bonsai_web bonsai_web_components.icon bonsai_web_components.menu
+   bonsai_web_components.toplayer toplayer.popover browser.expert core
+   virtual_dom.css_gen js_of_ocaml bonsai_web_components.lucide
+   private_skyline_dom private_skyline_prelude skyline_size))

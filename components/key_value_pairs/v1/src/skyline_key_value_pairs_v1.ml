@@ -66,7 +66,7 @@ module Pair = struct
     in
     let size = (size :> Skyline_text_v2.Size.t) in
     let key =
-      {%html.jsx|
+      {%html|
         <Skyline_text_v2.view
           *{Classes.[inline_flex; flex_row; gap 1.0; items_center]}
           ~size
@@ -75,8 +75,7 @@ module Pair = struct
       |}
     in
     let children =
-      List.map children ~f:(fun child ->
-        {%html.jsx|<Skyline_text_v2.view ~size>%{child}</>|})
+      List.map children ~f:(fun child -> {%html|<Skyline_text_v2.view ~size>%{child}</>|})
     in
     key, children
   ;;
@@ -87,8 +86,8 @@ let view ?(attrs = []) ?(size = `Md) ?(layout = Layout.Two_columns) (pairs : Pai
   let style = Style.layout ~user_gap:size layout in
   let render_key_value (pair : Pair.t) =
     let key, value = pair ~size in
-    [ {%html.jsx|<div *{Classes.[flex; items_start]}>%{key}</div>|}
-    ; {%html.jsx|<div %{flex} %{flex_col}>*{value}</div>|}
+    [ {%html|<div *{Classes.[flex; items_start]}>%{key}</div>|}
+    ; {%html|<div %{flex} %{flex_col}>*{value}</div>|}
     ]
   in
   let items =
@@ -98,13 +97,13 @@ let view ?(attrs = []) ?(size = `Md) ?(layout = Layout.Two_columns) (pairs : Pai
       render_key_value pair
     | One_column ->
       let%map.List pair = pairs in
-      {%html.jsx|
+      {%html|
         <div %{flex} %{flex_col} %{gap 1.0}>
           *{render_key_value pair}
         </div>
       |}
   in
-  {%html.jsx|<div *{style} *{attrs}>*{items}</div>|}
+  {%html|<div *{style} *{attrs}>*{items}</div>|}
 ;;
 
 module For_docs = struct

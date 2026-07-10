@@ -196,36 +196,40 @@ let hidden_ranges_of_segments ~text ~context segments =
       | Different _ | Replace _ -> true)
     else false
   in
-  Array.fold segments ~init:(1, []) ~f:(fun (current_line, accum) segment ->
-    match (segment : Segment.t) with
-    | Same arr ->
-      let start_line = current_line in
-      let stop_line = current_line + Array.length arr - 1 in
-      let accum =
-        if start_line = 1 && stop_line - start_line > context
-        then (
-          let start = start_of_line ~text 1 in
-          let stop = end_of_line ~text (stop_line - context) in
-          (start, stop) :: accum)
-        else if stop_line = last_line
-                (* If there is a trailing diff, this is not actually the end. *)
-                && (not has_trailing_diff)
-                && stop_line - start_line > context
-        then (
-          let start = start_of_line ~text (start_line + context) in
-          let stop = end_of_line ~text last_line in
-          (start, stop) :: accum)
-        else if stop_line - start_line > 2 * context
-        then (
-          let start = start_of_line ~text (start_line + context) in
-          let stop = end_of_line ~text (stop_line - context) in
-          (start, stop) :: accum)
-        else accum
-      in
-      current_line + Array.length arr, accum
-    | Different (_, arr) -> current_line + Array.length arr, accum
-    | Replace (_, arr) -> current_line + Array.length arr, accum)
-  |> snd
+  Array.fold
+    segments
+    ~init:(1, false, [])
+    ~f:(fun (current_line, has_seen_diff, accum) segment ->
+      match (segment : Segment.t) with
+      | Same arr ->
+        let start_line = current_line in
+        let stop_line = current_line + Array.length arr - 1 in
+        let accum =
+          (* Leading context is only collapsible before the first diff. *)
+          if start_line = 1 && (not has_seen_diff) && stop_line - start_line > context
+          then (
+            let start = start_of_line ~text 1 in
+            let stop = end_of_line ~text (stop_line - context) in
+            (start, stop) :: accum)
+          else if stop_line = last_line
+                  (* If there is a trailing diff, this is not actually the end. *)
+                  && (not has_trailing_diff)
+                  && stop_line - start_line > context
+          then (
+            let start = start_of_line ~text (start_line + context) in
+            let stop = end_of_line ~text last_line in
+            (start, stop) :: accum)
+          else if stop_line - start_line > 2 * context
+          then (
+            let start = start_of_line ~text (start_line + context) in
+            let stop = end_of_line ~text (stop_line - context) in
+            (start, stop) :: accum)
+          else accum
+        in
+        current_line + Array.length arr, has_seen_diff, accum
+      | Different (_, arr) -> current_line + Array.length arr, true, accum
+      | Replace (_, arr) -> current_line + Array.length arr, true, accum)
+  |> Tuple3.get3
 ;;
 
 let alignment_placeholder_ranges_of_segments ~text segments =
@@ -481,32 +485,94 @@ let register_deleted_selection_listener =
      |> (ignore : Dom.event_listener_id -> unit))
 ;;
 
+let diff_lines_facet =
+  lazy
+    (Codemirror.State.Facet.define
+       (Codemirror.State.Facet.Config.create ~combine:Fn.id ()))
+;;
+
+(* Defaults to [true], to handle editors using [all_added] / [all_deleted]. *)
+let is_diff_line state ~line_number =
+  match Codemirror.State.Editor_state.facet state (force diff_lines_facet) with
+  | [] -> true
+  | sets -> List.exists sets ~f:(fun set -> Set.mem set line_number)
+;;
+
+let make_segments_field ~segment_fn ?report_error () =
+  let safe_segment text =
+    try Some (segment_fn ~text) with
+    | exn ->
+      (match report_error with
+       | None -> raise exn
+       | Some report_error ->
+         Bonsai.Effect.Expert.handle
+           (report_error (Or_error.of_exn exn))
+           ~on_exn:(fun exn -> Exn.reraise exn "Unhandled exception raised in effect"));
+      None
+  in
+  Codemirror.State.State_field.define
+    ~config:
+      (Codemirror.State.State_field_config.create
+         ~create:(fun state -> safe_segment (Codemirror.State.Editor_state.doc state))
+         ~update:(fun value transaction ->
+           if Codemirror.State.Transaction.doc_changed transaction
+           then safe_segment (Codemirror.State.Transaction.new_doc transaction)
+           else value)
+         ~compare:None)
+;;
+
+let diff_lines_extension ~segments_field =
+  Codemirror.State.Facet.compute (force diff_lines_facet) ~deps:[ Doc ] ~get:(fun state ->
+    let text = Codemirror.State.Editor_state.doc state in
+    match Codemirror.State.Editor_state.field state segments_field with
+    | None | Some None -> Int.Set.empty
+    | Some (Some segments) ->
+      added_lines_of_segments ~text segments
+      |> List.fold ~init:Int.Set.empty ~f:(fun set (_kind, loc) ->
+        Set.add set (Codemirror.Text.Text.line_at text loc |> Codemirror.Text.Line.number)))
+;;
+
 let changes ~keep_ws ~context ~original =
   force register_deleted_selection_listener;
-  Codemirror.State.Facet.compute
-    Codemirror.View.Editor_view.decorations
-    ~deps:[ Doc ]
-    ~get:(fun state ->
-      let text = Codemirror.State.Editor_state.doc state in
-      let segments = segment ~keep_ws ~original ~text in
-      let deleted = deleted_inline_decorations ~text segments in
-      let added =
-        changed_line_decorations
-          ~bg:Style.For_referencing.cm_diff_added_line_bg
-          ~fg:Style.For_referencing.cm_diff_added_line_fg
-          ~text
-          segments
-      in
-      let refinements =
-        refinements ~class_:Style.For_referencing.cm_diff_added_refinement ~text segments
-      in
-      let hidden_context =
-        match context with
-        | Some context -> hidden_decorations ~text ~context segments
-        | None -> []
-      in
-      List.concat [ deleted; added; refinements; hidden_context ]
-      |> Codemirror.View.Decoration.set ~sort:true)
+  let segments_field = make_segments_field ~segment_fn:(segment ~keep_ws ~original) () in
+  let decorations_ext =
+    Codemirror.State.Facet.compute
+      Codemirror.View.Editor_view.decorations
+      ~deps:[ Doc ]
+      ~get:(fun state ->
+        let text = Codemirror.State.Editor_state.doc state in
+        match
+          Codemirror.State.Editor_state.field state segments_field |> Option.value_exn
+        with
+        | None -> Codemirror.View.Decoration.set ~sort:true []
+        | Some segments ->
+          let deleted = deleted_inline_decorations ~text segments in
+          let added =
+            changed_line_decorations
+              ~bg:Style.For_referencing.cm_diff_added_line_bg
+              ~fg:Style.For_referencing.cm_diff_added_line_fg
+              ~text
+              segments
+          in
+          let refinements =
+            refinements
+              ~class_:Style.For_referencing.cm_diff_added_refinement
+              ~text
+              segments
+          in
+          let hidden_context =
+            match context with
+            | Some context -> hidden_decorations ~text ~context segments
+            | None -> []
+          in
+          List.concat [ deleted; added; refinements; hidden_context ]
+          |> Codemirror.View.Decoration.set ~sort:true)
+  in
+  Codemirror.State.Extension.of_list
+    [ Codemirror.State.State_field.extension segments_field
+    ; decorations_ext
+    ; diff_lines_extension ~segments_field
+    ]
 ;;
 
 module Diff_side = struct
@@ -523,98 +589,57 @@ let diff_side =
 ;;
 
 let side_by_side ?report_error ~keep_ws ~context ~other_side left_or_right =
+  let side, segment_fn, bg_class, fg_class, refinement_class =
+    match left_or_right with
+    | `Left ->
+      ( Diff_side.Left
+      , segment_reverse ~keep_ws ~original:other_side
+      , Style.For_referencing.cm_diff_deleted_line_bg
+      , Style.For_referencing.cm_diff_deleted_line_fg
+      , Style.For_referencing.cm_diff_deleted_refinement )
+    | `Right ->
+      ( Diff_side.Right
+      , segment ~keep_ws ~original:other_side
+      , Style.For_referencing.cm_diff_added_line_bg
+      , Style.For_referencing.cm_diff_added_line_fg
+      , Style.For_referencing.cm_diff_added_refinement )
+  in
   let side_ext =
-    let side =
-      match left_or_right with
-      | `Left -> Diff_side.Left
-      | `Right -> Right
-    in
     Codemirror.State.Facet.of_
       (force diff_side)
       (Codemirror.With_conversion.create ~t_to_js:Obj.magic side)
   in
+  let segments_field = make_segments_field ~segment_fn ?report_error () in
   let decorations_ext =
-    match left_or_right with
-    | `Left ->
-      Codemirror.State.Facet.compute
-        Codemirror.View.Editor_view.decorations
-        ~deps:[ Doc ]
-        ~get:(fun state ->
-          try
-            let text = Codemirror.State.Editor_state.doc state in
-            let segments = segment_reverse ~keep_ws ~original:other_side ~text in
-            let deleted =
-              changed_line_decorations
-                ~bg:Style.For_referencing.cm_diff_deleted_line_bg
-                ~fg:Style.For_referencing.cm_diff_deleted_line_fg
-                ~text
-                segments
-            in
-            let refinements =
-              refinements
-                ~class_:Style.For_referencing.cm_diff_deleted_refinement
-                ~text
-                segments
-            in
-            let hidden_context =
-              match context with
-              | Some context -> hidden_decorations ~text ~context segments
-              | None -> []
-            in
-            let alignment = alignment_placeholder_decorations ~text segments in
-            List.concat [ deleted; refinements; hidden_context; alignment ]
-            |> Codemirror.View.Decoration.set ~sort:true
-          with
-          | exn ->
-            (match report_error with
-             | Some report_error ->
-               Bonsai.Effect.Expert.handle
-                 (report_error (Or_error.of_exn exn))
-                 ~on_exn:(fun exn ->
-                   Exn.reraise exn "Unhandled exception raised in effect");
-               Codemirror.View.Decoration.set ~sort:true []
-             | None -> raise exn))
-    | `Right ->
-      Codemirror.State.Facet.compute
-        Codemirror.View.Editor_view.decorations
-        ~deps:[ Doc ]
-        ~get:(fun state ->
-          try
-            let text = Codemirror.State.Editor_state.doc state in
-            let segments = segment ~keep_ws ~original:other_side ~text in
-            let added =
-              changed_line_decorations
-                ~bg:Style.For_referencing.cm_diff_added_line_bg
-                ~fg:Style.For_referencing.cm_diff_added_line_fg
-                ~text
-                segments
-            in
-            let refinements =
-              refinements
-                ~class_:Style.For_referencing.cm_diff_added_refinement
-                ~text
-                segments
-            in
-            let hidden_context =
-              match context with
-              | Some context -> hidden_decorations ~text ~context segments
-              | None -> []
-            in
-            let alignment = alignment_placeholder_decorations ~text segments in
-            List.concat [ added; refinements; hidden_context; alignment ]
-            |> Codemirror.View.Decoration.set ~sort:true
-          with
-          | exn ->
-            (match report_error with
-             | Some report_error ->
-               Bonsai.Effect.Expert.handle
-                 (report_error (Or_error.of_exn exn))
-                 ~on_exn:(fun exn ->
-                   Exn.reraise exn "Unhandled exception raised in effect");
-               Codemirror.View.Decoration.set ~sort:true []
-             | None -> raise exn))
+    Codemirror.State.Facet.compute
+      Codemirror.View.Editor_view.decorations
+      ~deps:[ Doc ]
+      ~get:(fun state ->
+        let text = Codemirror.State.Editor_state.doc state in
+        match
+          Codemirror.State.Editor_state.field state segments_field |> Option.value_exn
+        with
+        | None -> Codemirror.View.Decoration.set ~sort:true []
+        | Some segments ->
+          let decorations =
+            changed_line_decorations ~bg:bg_class ~fg:fg_class ~text segments
+          in
+          let refinements = refinements ~class_:refinement_class ~text segments in
+          let hidden_context =
+            match context with
+            | Some context -> hidden_decorations ~text ~context segments
+            | None -> []
+          in
+          let alignment = alignment_placeholder_decorations ~text segments in
+          List.concat [ decorations; refinements; hidden_context; alignment ]
+          |> Codemirror.View.Decoration.set ~sort:true)
   in
-  Codemirror.State.Extension.of_list [ side_ext; decorations_ext ]
+  Codemirror.State.Extension.of_list
+    [ Codemirror.State.State_field.extension segments_field
+    ; side_ext
+    ; decorations_ext
+    ; diff_lines_extension ~segments_field
+    ]
 ;;
 
 let all_lines ~class_name =

@@ -5,10 +5,28 @@ open! Js_of_ocaml
 (* Keyboard accessible focus for tree rows. *)
 
 let row_attr ~on_enter =
+  let is_keyboard_navigable (element : Dom_html.element Js.t) =
+    (* [Vdom.Attr.tabindex] renders as an attribute (not the [tabIndex] property) *)
+    match Js.Opt.to_option (element##getAttribute (Js.string "tabindex")) with
+    | Some tab_index -> not (String.equal (Js.to_string tab_index) "-1")
+    | None -> false
+  in
+  (* Walks past non-navigable siblings (e.g. disabled rows, which the tree renders without
+     a [tabindex], and nodes that are not HTML elements). *)
+  let rec keyboard_navigable_sibling (element : Dom.element Js.t) which =
+    match which element |> Js.Opt.to_option with
+    | None -> None
+    | Some sibling ->
+      (match Dom_html.CoerceTo.element (sibling :> Dom.node Js.t) |> Js.Opt.to_option with
+       | Some html_sibling when is_keyboard_navigable html_sibling -> Some html_sibling
+       | Some (_ : Dom_html.element Js.t) | None ->
+         keyboard_navigable_sibling sibling which)
+  in
   let focus_sibling_row event which =
     let row_to_focus =
       let%bind.Option current = event##.currentTarget |> Js.Opt.to_option in
-      which (Js.Unsafe.coerce current) |> Js.Opt.to_option
+      let%bind.Option current = Dom_html.CoerceTo.element current |> Js.Opt.to_option in
+      keyboard_navigable_sibling (current :> Dom.element Js.t) which
     in
     Option.iter row_to_focus ~f:(fun element -> element##focus);
     Dom.preventDefault event;

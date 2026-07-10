@@ -12,11 +12,56 @@ module Variant = struct
 end
 
 module Loading = struct
+  module Loading_state = struct
+    type t =
+      { is_loading : bool
+      ; handle : 'a. 'a Effect.t -> 'a Effect.t
+      }
+
+    let component (local_ graph) =
+      let in_flight_count, update_in_flight_count = Bonsai.state' 0 graph in
+      let%arr in_flight_count and update_in_flight_count in
+      let handle effect =
+        let%bind.Effect () = update_in_flight_count (fun count -> count + 1) in
+        Effect.protect
+          effect
+          ~finally:(update_in_flight_count (fun count -> Int.max 0 (count - 1)))
+      in
+      { is_loading = in_flight_count > 0; handle }
+    ;;
+  end
+
   type t =
     | Yes
     | No
-    | While_effect_in_progress
-  [@@deriving enumerate, to_string]
+    | While_effect_in_progress of Loading_state.t
+
+  let is_loading = function
+    | Yes -> true
+    | No -> false
+    | While_effect_in_progress { is_loading; _ } -> is_loading
+  ;;
+
+  let wrap_on_click ~on_click = function
+    | Yes | No -> on_click
+    | While_effect_in_progress { handle; _ } -> handle on_click
+  ;;
+
+  let while_effect_in_progress (graph @ local) =
+    let%arr while_effect_in_progress = Loading_state.component graph in
+    While_effect_in_progress while_effect_in_progress
+  ;;
+end
+
+module Type_attr = struct
+  type t =
+    | Button
+    | Submit
+
+  let to_attr = function
+    | Button -> Attr.type_ "button"
+    | Submit -> Attr.type_ "submit"
+  ;;
 end
 
 module Style = struct
@@ -156,17 +201,17 @@ module Style = struct
       | Soft, `Success -> Classes.text_on_soft_success
       | Soft, `Warning -> Classes.text_on_soft_warning
       | Ghost, `Primary -> Classes.text_primary
-      | Ghost, `Secondary -> Classes.text_secondary
+      | Ghost, `Secondary -> Classes.text_default
       | Ghost, `Danger -> Classes.text_danger
       | Ghost, `Success -> Classes.text_success
       | Ghost, `Warning -> Classes.text_warning
       | Outlined, `Primary -> Classes.text_primary
-      | Outlined, `Secondary -> Classes.text_secondary
+      | Outlined, `Secondary -> Classes.text_default
       | Outlined, `Danger -> Classes.text_danger
       | Outlined, `Success -> Classes.text_success
       | Outlined, `Warning -> Classes.text_warning
       | Link, `Primary -> Classes.text_primary
-      | Link, `Secondary -> Classes.text_secondary
+      | Link, `Secondary -> Classes.text_default
       | Link, `Danger -> Classes.text_danger
       | Link, `Success -> Classes.text_success
       | Link, `Warning -> Classes.text_warning
@@ -243,7 +288,7 @@ module Style = struct
     let border_class =
       match (variant : Variant.t), intent with
       | Outlined, `Primary -> Classes.border_primary
-      | Outlined, `Secondary -> Classes.border_default
+      | Outlined, `Secondary -> Classes.border_default_alt
       | Outlined, `Danger -> Classes.border_danger
       | Outlined, `Success -> Classes.border_success
       | Outlined, `Warning -> Classes.border_warning
@@ -366,7 +411,7 @@ end
 
 module Icon = struct
   let view ?(attrs = []) ~icon () =
-    {%html.jsx|
+    {%html|
       <Bonsai_web_icon.view
         *{[ Style.Icon.Stylesheet.icon; Attr.many attrs ]}
         ~size:%{(`Var Style.Icon.Stylesheet.For_referencing.size)}
@@ -381,7 +426,7 @@ let href_and_target href target =
 ;;
 
 let spinner () =
-  {%html.jsx|
+  {%html|
     <span %{Style.Loading.spinner_animation}>
       <Icon.view ~icon:%{Lucide.loader_circle} />
     </span>
@@ -390,9 +435,9 @@ let spinner () =
 
 let loading_overlay children =
   match Am_running_how_js.am_running_how with
-  | `Node_test | `Node_jsdom_test -> {%html.jsx|Loading...|}
+  | `Node_test | `Node_jsdom_test -> {%html|Loading...|}
   | `Browser | `Browser_test | `Browser_benchmark | `Node | `Node_benchmark ->
-    {%html.jsx|
+    {%html|
       <><span %{Style.Loading.container}><%{spinner} />#{" Loading "}</span
         ><span %{Style.Loading.hidden_children}>*{children}</span></>
     |}
@@ -402,7 +447,28 @@ let with_external_link_indicator contents =
   match Am_running_how_js.am_running_how with
   | `Node_test | `Node_jsdom_test -> contents
   | `Browser | `Browser_test | `Browser_benchmark | `Node | `Node_benchmark ->
-    contents @ [ {%html.jsx|<Icon.view ~icon:%{Lucide.external_link} />|} ]
+    contents @ [ {%html|<Icon.view ~icon:%{Lucide.external_link} />|} ]
+;;
+
+let num_children children =
+  (* Make sure we count text nodes inside a fragment. *)
+  let rec node_length (node : Vdom.Node.t) =
+    match node with
+    | Fragment nodes -> List.sum (module Int) nodes ~f:node_length
+    | None -> 0
+    | Text _ | Element _ | Widget _ | Lazy _ -> 1
+  in
+  List.sum (module Int) children ~f:node_length
+;;
+
+let contains_type_attribute attr =
+  (* Only a real HTML [type] attribute should suppress the default. Hooks and properties
+     named [type] don't set the same field in the raw Vdom attrs. *)
+  attr
+  |> Attr.Expert.filter_by_kind ~f:(function
+    | `Attribute -> true
+    | `Class | `Handler | `Hook | `Property | `Style -> false)
+  |> Attr.Expert.contains_name "type"
 ;;
 
 let view
@@ -413,16 +479,33 @@ let view
   ?(variant = Variant.Filled)
   ?(rounded = false)
   ?(disabled = false)
-  ?(loading = false)
+  ?(loading = Loading.No)
   ?(intent : Skyline_intent.t = `Secondary)
   ?tooltip
   ?tooltip_position
   ?(show_external_link_icon = true)
+  ?type_attr
   children
   ~on_click
   =
+  let on_click = Loading.wrap_on_click ~on_click loading in
+  let loading = Loading.is_loading loading in
   let children = if loading then [ loading_overlay children ] else children in
   let disabled = disabled || loading in
+  let attrs =
+    let type_attr =
+      match type_attr, List.exists attrs ~f:contains_type_attribute with
+      | Some type_attr, _ -> Some type_attr
+      | None, false -> Some Type_attr.Button
+      | None, true -> None
+    in
+    (* If [type_attr] is explicit and [attrs] also contains [Vdom.Attr.type_], the
+       caller's [attrs] win via Vdom merge order and Vdom emits a duplicate-attribute
+       warning. For the implicit default, avoid adding a duplicate [type] attribute. *)
+    match type_attr with
+    | None -> attrs
+    | Some type_attr -> Type_attr.to_attr type_attr :: attrs
+  in
   let tooltip =
     match tooltip with
     | Some "" | None -> Attr.empty
@@ -437,7 +520,7 @@ let view
     ; Style.button_base
     ; Style.size_styles size ~rounded ~slim
     ; Style.variant_styles variant ~intent ~disabled
-    ; Style.Icon.attrs ~size ~num_children:(List.length children) ~slim
+    ; Style.Icon.attrs ~size ~num_children:(num_children children) ~slim
     ; (if disabled then Classes.disabled else Attr.empty)
     ; tooltip
     ; Classes.data_skyline_component "button"
@@ -453,93 +536,87 @@ let view
         children
       | true, New_tab_or_window -> with_external_link_indicator children
     in
-    {%html.jsx|<a *{[href_and_target url target; Attr.many (button_attrs ~children)]}>*{children}</a>|}
+    {%html|<a *{[href_and_target url target; Attr.many (button_attrs ~children)]}>*{children}</a>|}
   | _ ->
     let on_click = if disabled then Effect.Ignore else on_click in
-    {%html.jsx|<button *{ [Attr.on_click (fun _ -> on_click); Attr.many (button_attrs ~children)]}>*{children}</button>|}
+    {%html|<button *{ [Attr.on_click (fun _ -> on_click); Attr.many (button_attrs ~children)]}>*{children}</button>|}
 ;;
 
-module Loading_state = struct
-  type t =
-    { is_loading : bool
-    ; handle : 'a. 'a Effect.t -> 'a Effect.t
-    }
+module Copy = struct
+  module State = struct
+    type t = Bonsai_web_clipboard.With_status.t
 
-  let component (local_ graph) =
-    let { Bonsai.Toggle.state = is_loading; set_state = set_loading; toggle = _ } =
-      Bonsai.toggle' ~default_model:false graph
+    let component ~text (local_ graph) =
+      Bonsai_web_clipboard.With_status.copy_text text graph
+    ;;
+  end
+
+  (* Overlay children with a checkmark when content has been copied. *)
+  let on_copy_overlay children =
+    match Am_running_how_js.am_running_how with
+    | `Node_test | `Node_jsdom_test -> {%html|<Icon.view ~icon:%{Lucide.check} />|}
+    | `Browser | `Browser_test | `Browser_benchmark | `Node | `Node_benchmark ->
+      {%html|
+        <>
+          <span %{Style.Loading.container}>
+            <Icon.view ~icon:%{Lucide.check} />
+          </span>
+          <span %{Style.Loading.hidden_children}>*{children}</span>
+        </>
+      |}
+  ;;
+
+  let view
+    ?test_selector
+    ?(attrs = [])
+    ?size
+    ?slim
+    ?variant
+    ?rounded
+    ?disabled
+    ?(loading = false)
+    ?intent
+    ?(on_copied_tooltip = "Copied!")
+    ?on_copied_tooltip_position
+    ?type_attr
+    children
+    ~state
+    =
+    let ~on_click, ~tooltip, ~children =
+      match state with
+      | `Copied ->
+        let tooltip =
+          (* We use `Always_show because the user is already hovering over the button. *)
+          Node.text on_copied_tooltip
+          |> Skyline_tooltip_v2.attr
+               ?position:on_copied_tooltip_position
+               ~behavior:`Always_show
+        in
+        ~on_click:Effect.Ignore, ~tooltip, ~children:[ on_copy_overlay children ]
+      | `Idle on_click -> ~on_click, ~tooltip:Attr.empty, ~children
     in
-    let%arr is_loading and set_loading in
-    let handle effect =
-      let%bind.Effect () = set_loading true in
-      let%bind.Effect result = effect in
-      let%bind.Effect () = set_loading false in
-      Effect.return result
-    in
-    { is_loading; handle }
+    let loading = if loading then Loading.Yes else Loading.No in
+    view
+      ?test_selector
+      ?size
+      ?slim
+      ?variant
+      ?rounded
+      ?disabled
+      ~loading
+      ?intent
+      ~attrs:(tooltip :: attrs)
+      ?type_attr
+      children
+      ~on_click
   ;;
 end
 
-let component
-  ?test_selector
-  ?(disabled = Bonsai.return false)
-  ?(loading = Bonsai.return Loading.No)
-  ?(attrs = Bonsai.return [])
-  ?(size = Bonsai.return `Md)
-  ?(slim = Bonsai.return false)
-  ?(variant = Bonsai.return Variant.Filled)
-  ?(rounded = Bonsai.return false)
-  ?(intent = Bonsai.return `Secondary)
-  ?tooltip
-  ?tooltip_position
-  ?(show_external_link_icon = Bonsai.return true)
-  children
-  ~on_click
-  graph
-  =
-  let tooltip = Bonsai.transpose_opt tooltip in
-  let test_selector = Bonsai.transpose_opt test_selector in
-  let tooltip_position = Bonsai.transpose_opt tooltip_position in
-  let loading_state = Loading_state.component graph in
-  let%arr loading
-  and disabled
-  and loading_state
-  and variant
-  and rounded
-  and intent
-  and attrs
-  and tooltip
-  and tooltip_position
-  and show_external_link_icon
-  and on_click
-  and children
-  and test_selector
-  and size
-  and slim in
-  let loading, on_click =
-    match (loading : Loading.t) with
-    | Yes -> true, on_click
-    | No -> false, on_click
-    | While_effect_in_progress -> loading_state.is_loading, loading_state.handle on_click
-  in
-  view
-    ~size
-    ~slim
-    ~variant
-    ~intent
-    ~disabled
-    ~loading
-    ~on_click
-    ~attrs:[ Attr.many attrs ]
-    ~rounded
-    ~show_external_link_icon
-    ?test_selector
-    ?tooltip
-    ?tooltip_position
-    children
-;;
-
 let group_style = Vdom.Attr.create "data-skyline-button-group" ""
+
+module For_testing = struct
+  let has_one_child_classname = Style.Icon.Stylesheet.For_referencing.has_one_child
+end
 
 module For_docs = struct
   let ml_filepath = [%here].pos_fname

@@ -3,7 +3,7 @@
  (public_name skyline.typeahead_v1)
  (preprocess
   (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai))
- (libraries bonsai bonsai_web bonsai_web_components.element_size_hooks core
+ (libraries bonsai_web bonsai_web_components.element_size_hooks core
    virtual_dom.css_gen fuzzy_match.search js_of_ocaml
    private_skyline_autofocus private_skyline_typeahead skyline_flex_v1
    skyline_input_v1 skyline_text_input_v1))

@@ -47,9 +47,9 @@ open! Bonsai_web
 
 (** How to render the selection area of a combobox.
 
-    - [Render_multi_selection] can only be used with [Selection_mode.Multi_ux]; [render]
-      is called with the full list of selected items and its output replaces the default
-      dismissable chips.
+    - [Render_multi] can only be used with [Selection_mode.Multi_ux]; [render] is called
+      with the full list of selected items and its output replaces the default dismissable
+      chips.
     - [on_backspace] fires when the user presses Backspace with an empty input. It
       replaces the built-in "remove the rightmost chip" behavior, which can be surprising
       when selected items aren't rendered as individual chips. The effect only fires on an
@@ -57,7 +57,7 @@ open! Bonsai_web
 
     This constraint is enforced by the types. *)
 type ('a, 'selection) render_selection =
-  | Render_multi_selection :
+  | Render_multi :
       { on_backspace : unit Effect.t
       ; render : 'a list -> Vdom.Node.t
       }
@@ -76,15 +76,21 @@ type ('a, 'selection) render_selection =
     - [?input_attrs] - additional attributes on the inner [<input>] element (e.g. for
       [Attr.on_focus])
     - [~placeholder] - placeholder text for the text input
-    - [?render_selection] - custom rendering for the selection area. Use
-      [Render_multi_selection] with [Multi_ux] controllers to replace the default
-      dismissable chips with a caller-provided node (e.g. an "N selected" summary).
+    - [?render_selection] - custom rendering for the selection area. Use [Render_multi]
+      with [Multi_ux] controllers to replace the default dismissable chips with a
+      caller-provided node (e.g. an "N selected" summary).
+    - [?tab_selects_current_item] - when [true], pressing [Tab] while the popover is open
+      has the same behavior as [Enter], except that the popover always closes (even for
+      [Multi_ux]), Shift+Tab never commits, and when there is nothing to commit Tab falls
+      through to normal focus navigation rather than being swallowed. The next Tab moves
+      focus as usual. Default [false].
     - [~controller] - the typeahead controller, see [Typeahead_controller.component]. *)
 val content
   :  ?test_selector:Test_selector.t
   -> ?attrs:Vdom.Attr.t list
   -> ?input_attrs:Vdom.Attr.t list
   -> ?render_selection:('a, 'selection) render_selection
+  -> ?tab_selects_current_item:bool
   -> placeholder:string
   -> controller:('a, 'selection) Typeahead_controller.t
   -> unit

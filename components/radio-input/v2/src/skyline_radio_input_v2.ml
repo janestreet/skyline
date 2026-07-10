@@ -172,7 +172,7 @@ let content ?test_selector ?(attrs = []) ~item () =
     (* We want the root element to be a text node because:
        - the element is sized in [em] units
        - the element needs a text baseline so that it lines up well next to text labels *)
-    {%html.jsx|
+    {%html|
       <Skyline_text_v2.view *{attrs} ~size:%{text_size} ?test_selector>
         <div style="display: flex; height: 1lh; align-items: center">
           <input

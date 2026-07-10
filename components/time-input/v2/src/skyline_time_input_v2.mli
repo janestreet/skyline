@@ -86,11 +86,29 @@ val content
   -> unit
   -> Skyline_field_v2.Content.t
 
-module For_testing : sig
-  module Segmented_input = Segmented_input
-  module Segment_spinbutton = Segmented_input.Segment_spinbutton
-end
-
 module For_docs : sig
   val ml_filepath : string
+end
+
+module For_testing : sig
+  val copy
+    :  show_seconds:bool
+    -> set_clipboard_value:(string -> unit)
+    -> prevent_default:(unit -> unit)
+    -> Time_ns.Ofday.t option
+    -> bool
+
+  val cut
+    :  disabled:bool
+    -> show_seconds:bool
+    -> set_clipboard_value:(string -> unit)
+    -> prevent_default:(unit -> unit)
+    -> Time_ns.Ofday.t option
+    -> Time_ns.Ofday.t option option
+
+  val paste
+    :  disabled:bool
+    -> clipboard_value:string
+    -> prevent_default:(unit -> unit)
+    -> Time_ns.Ofday.t option option
 end

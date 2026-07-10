@@ -286,7 +286,7 @@ let component
           ~attrs:
             [ Vdom.Attr.id input_id
             ; Vdom.Attr.type_ (Input_type.to_string type_)
-            ; Vdom.Attr.value_prop value
+            ; Vdom.Attr.value value
             ; Vdom.Attr.placeholder placeholder
             ; Vdom.Attr.on_input (fun _ input -> update input)
             ; autofocus

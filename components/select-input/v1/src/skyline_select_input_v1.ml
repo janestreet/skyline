@@ -61,7 +61,7 @@ let component
         in
         let value = to_string choice in
         Vdom.Node.option
-          ~attrs:[ Vdom.Attr.value value; maybe_selected ]
+          ~attrs:[ Vdom.Attr.value_attr value; maybe_selected ]
           [ Vdom.Node.text value ])
       |> Nonempty_list.to_list
     in
@@ -74,7 +74,7 @@ let component
              DOM is patched. Otherwise the visibly selected option might shift. *)
             ~key:"fallback-missing-option"
             ~attrs:
-              [ Vdom.Attr.value current_value
+              [ Vdom.Attr.value_attr current_value
               ; Vdom.Attr.style (Css_gen.display `None)
               ; Vdom.Attr.disabled
               ; (if not current_choice_exists_in_options
@@ -88,7 +88,7 @@ let component
     in
     Vdom.Node.select
       ~attrs:
-        [ Vdom.Attr.value_prop current_value
+        [ Vdom.Attr.value current_value
         ; on_change
         ; maybe_disabled
         ; Skyline_text_input_v1.Expert.style

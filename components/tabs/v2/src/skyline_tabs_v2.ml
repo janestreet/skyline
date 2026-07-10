@@ -46,7 +46,7 @@ module Item = struct
       | true -> Some (Style.tab_active size)
       | false -> None
     in
-    {%html.jsx|
+    {%html|
       <div
         ?{selected_attr}
         style="
@@ -55,6 +55,7 @@ module Item = struct
         "
       >
         <Button.view
+          ~type_attr:%{Submit}
           style="
             /* We apply border-radius: 0 to opt out of the default rounded corners for
                hover/active/focus states. */
@@ -73,7 +74,7 @@ module Item = struct
   ;;
 end
 
-let view_and_state
+let view
   ?test_selectors
   ?(attrs = [])
   ?(item_attrs = Fn.const [])
@@ -96,40 +97,21 @@ let view_and_state
       let is_disabled = is_disabled item in
       let on_click = set_value item in
       let item_label = label item in
-      {%html.jsx|
+      {%html|
         <Item.view ?test_selector ~attrs ~size ~is_selected ~is_disabled ~on_click
           >%{item_label}</>
       |})
   in
-  let view =
-    {%html.jsx|
-      <div
-        *{Classes.[flex]}
-        %{Style.border_bottom}
-        *{attrs}
-        %{Classes.data_skyline_component "tabs"}
-      >
-        *{tabs}
-      </div>
-    |}
-  in
-  { value; set_value; view }
-;;
-
-let view ?test_selectors ?attrs ?item_attrs ?size ?is_disabled items ~equal ~state ~label =
-  let%tydi { view; value = _; set_value = _ } =
-    view_and_state
-      ?test_selectors
-      ?attrs
-      ?item_attrs
-      ?size
-      ?is_disabled
-      items
-      ~equal
-      ~state
-      ~label
-  in
-  view
+  {%html|
+    <div
+      *{Classes.[flex]}
+      %{Style.border_bottom}
+      *{attrs}
+      %{Classes.data_skyline_component "tabs"}
+    >
+      *{tabs}
+    </div>
+  |}
 ;;
 
 let component
@@ -157,16 +139,19 @@ let component
   and item_attrs = Bonsai.transpose_opt item_attrs
   and is_disabled = Bonsai.transpose_opt is_disabled
   and label in
-  view_and_state
-    ?test_selectors
-    ?attrs
-    ?item_attrs
-    ?size
-    ?is_disabled
-    items
-    ~equal
-    ~state:(value, set_value)
-    ~label
+  let view =
+    view
+      ?test_selectors
+      ?attrs
+      ?item_attrs
+      ?size
+      ?is_disabled
+      items
+      ~equal
+      ~state:(value, set_value)
+      ~label
+  in
+  { value; set_value; view }
 ;;
 
 module For_docs = struct

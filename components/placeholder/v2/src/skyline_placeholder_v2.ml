@@ -1,12 +1,19 @@
 open! Core
 open! Private_skyline_prelude
 
+module Color = struct
+  type t =
+    [ `Default
+    | Skyline_intent.t
+    ]
+end
+
 module Style = struct
   let title_text_size = function
-    | `Xs -> Classes.text_default
-    | `Sm -> Classes.text_lg
-    | `Md -> Classes.text_xl
-    | `Lg -> Classes.text_2xl
+    | `Xs -> `Md
+    | `Sm -> `Lg
+    | `Md -> `Xl
+    | `Lg -> `Two_xl
   ;;
 
   let container_gap_and_padding = function
@@ -22,13 +29,32 @@ module Style = struct
     | `Md -> `Px 48
     | `Lg -> `Px 64
   ;;
+
+  let icon_color = function
+    | `Default -> Colors.Text.default
+    | `Primary -> Colors.Text.primary
+    | `Secondary -> Colors.Text.secondary
+    | `Success -> Colors.Text.success
+    | `Danger -> Colors.Text.danger
+    | `Warning -> Colors.Text.warning
+  ;;
 end
 
-let view ?test_selector ?(attrs = []) ?(size = `Md) ?icon ~title ~message actions =
+let view
+  ?test_selector
+  ?(attrs = [])
+  ?(size = `Md)
+  ?(color = `Default)
+  ?icon
+  ~title
+  ~message
+  actions
+  =
   let icon_node =
     let%map.Option icon in
-    {%html.jsx|
+    {%html|
       <Bonsai_web_icon.view
+        ~color:%{Style.icon_color color}
         ~icon
         ~stroke_width:%{`Px 1}
         ~size:%{Style.icon_size size}
@@ -40,9 +66,9 @@ let view ?test_selector ?(attrs = []) ?(size = `Md) ?icon ~title ~message action
     | [] -> None
     | actions ->
       Some
-        {%html.jsx|<div *{Classes.[items_center; flex; flex_col; gap 2.]}>*{actions}</div>|}
+        {%html|<div *{Classes.[items_center; flex; flex_col; gap 2.]}>*{actions}</div>|}
   in
-  {%html.jsx|
+  {%html|
     <div
       *{Classes.[flex; flex_col; items_center; justify_center]}
       *{Style.container_gap_and_padding size}
@@ -52,9 +78,11 @@ let view ?test_selector ?(attrs = []) ?(size = `Md) ?icon ~title ~message action
     >
       ?{icon_node}
       <div *{Classes.[flex; flex_col; items_center; w_full]} style="text-align: center">
-        <span %{Classes.font_bold} %{Style.title_text_size size}
-          >#{title}</span
-        >
+        <Skyline_text_v2.view
+          ~color:%{color :> Skyline_text_v2.Color.t}
+          ~size:%{Style.title_text_size size}
+          %{Classes.font_bold}
+          >#{title}</>
         <Skyline_text_v2.view
           ~size:%{size :> Skyline_text_v2.Size.t}
           ~color:%{`Secondary}

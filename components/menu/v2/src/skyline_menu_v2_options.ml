@@ -235,7 +235,7 @@ end
 let maybe_icon ?(attrs = []) ~icon () =
   match icon with
   | Some icon ->
-    {%html.jsx|
+    {%html|
       <Bonsai_web_icon.view
         *{attrs}
         ~size:%{(`Var Styles.For_referencing.icon_size)}
@@ -263,10 +263,11 @@ let render_item (config : Single_data.t) ~state_attrs ~is_active ~is_disabled ~s
     ; Attr.many config_attrs
     ; Attr.many state_attrs
     ; Styles.item ~is_active ~is_disabled ~size
+    ; (if is_disabled then Classes.disabled else Attr.empty)
     ; is_active_attr
     ]
   in
-  {%html.jsx|
+  {%html|
     <button *{attrs}>
       <%{maybe_icon} %{Styles.icon_left} ~icon />
       <div %{Styles.row_content_wrapper}>*{children}</div>
@@ -297,14 +298,14 @@ let item
 
 let separator ?(attrs = []) () =
   Bonsai_web_menu.Item.Inert
-    (Item_data.Inert (fun ~size -> {%html.jsx|<hr %{Styles.hr ~size} *{attrs} />|}))
+    (Item_data.Inert (fun ~size -> {%html|<hr %{Styles.hr ~size} *{attrs} />|}))
 ;;
 
 let title ?test_selector ?(attrs = []) children =
   Bonsai_web_menu.Item.Inert
     (Item_data.Inert
        (fun ~size ->
-         {%html.jsx|
+         {%html|
            <div
              %{Styles.inert_title ~size}
              *{attrs}
@@ -319,13 +320,13 @@ module Sub_menu = struct
   module Trigger = struct
     type t = (unit, Item_data.t) Bonsai_web_menu.Item.t
 
-    let create ?test_selector ?(attrs = []) ?icon ?suffix children =
+    let create ?test_selector ?(attrs = []) ?(disabled = false) ?icon ?suffix children =
       Bonsai_web_menu.Item.Single
         { key =
             ""
             (* [Submenu.Trigger] receives the key from [Submenu.create]. This one will be
                ignored. *)
-        ; disabled = false
+        ; disabled
         ; on_click = Effect.Ignore
         ; item =
             Item_data.Single
@@ -334,7 +335,7 @@ module Sub_menu = struct
               ; icon
               ; suffix =
                   Some
-                    {%html.jsx|
+                    {%html|
                       <>
                         %{Option.value ~default:Node.none suffix}
                         <%{maybe_icon} ~icon:%{(Some Lucide.chevron_right)} />
@@ -347,22 +348,17 @@ module Sub_menu = struct
   end
 
   let create ?test_selector ?(attrs = []) items ~key ~trigger =
-    Bonsai_web_menu.Item.Submenu
-      { key
-      ; item =
-          (match trigger with
-           | Bonsai_web_menu.Item.Single
-               { item = Item_data.Single config; key; disabled; on_click } ->
-             ignore on_click (* [on_click] is ignored *);
-             ignore disabled (* [disabled] is ignored *);
-             ignore key (* [key] is ignored. *);
-             Item_data.Submenu
-               { trigger = config
-               ; container_config_attrs = Test_selector.attr_of_opt test_selector :: attrs
-               }
-           | _ -> assert false)
-      ; items
-      }
+    let item, disabled =
+      match trigger with
+      | Bonsai_web_menu.Item.Single
+          { item = Item_data.Single trigger; key; disabled; on_click } ->
+        ignore on_click (* [on_click] is ignored *);
+        ignore key (* [key] is ignored. *);
+        let container_config_attrs = Test_selector.attr_of_opt test_selector :: attrs in
+        Item_data.Submenu { trigger; container_config_attrs }, disabled
+      | _ -> assert false
+    in
+    Bonsai_web_menu.Item.Submenu { key; disabled; item; items }
   ;;
 end
 
@@ -435,7 +431,6 @@ let rec contents'
     List.map items ~f:(fun child ->
       match (child : (unit, Item_data.t) Bonsai_web_menu.Item.t) with
       | Single { item = Item_data.Single config; key; disabled; on_click } ->
-        let maybe_disabled = if disabled then Attr.disabled else Attr.empty in
         let on_click =
           if disabled then Attr.empty else Attr.on_click (fun _ -> on_click)
         in
@@ -446,12 +441,7 @@ let rec contents'
           maybe_test_selector_attr items_test_selectors ~key ~current_path_rev
         in
         let state_attrs =
-          [ Scroll_selectors.attr ~key
-          ; maybe_disabled
-          ; on_click
-          ; on_mouseenter
-          ; maybe_test_selector
-          ]
+          [ Scroll_selectors.attr ~key; on_click; on_mouseenter; maybe_test_selector ]
         in
         render_item
           config
@@ -474,42 +464,53 @@ let rec contents'
         assert false
       | Section _ -> assert false
       | Submenu
-          { items; item = Item_data.Submenu { trigger; container_config_attrs }; key } ->
+          { items
+          ; item = Item_data.Submenu { trigger; container_config_attrs }
+          ; key
+          ; disabled
+          } ->
         let submenu_id = [%string "%{path_id}/%{key}"] in
         let open_submenu = set_active_path_rev (key :: current_path_rev) in
         let submenu_state_attrs =
-          match active_path with
-          | active_key :: active_path when String.equal key active_key ->
-            let safe_triangle =
-              if List.is_empty active_path
-              then
-                Bonsai_web_toplayer_private_vdom.For_bonsai_web_menu.safe_triangle
-                  ~submenu_id
-              else Attr.empty
-            in
-            let popover =
-              Bonsai_web_toplayer.vdom_popover
-                ~popover_attrs:[ Styles.container ]
-                ~overflow_auto_wrapper:false
-                ~position:Right
-                ~alignment:Start
-                (contents'
-                   ~config_attrs:container_config_attrs
-                   ~path_id
-                   ~set_active_path_rev
-                   ~current_path_rev:(key :: current_path_rev)
-                   ~active_path
-                   ~size
-                   items)
-            in
-            Attr.combine safe_triangle popover
-          | _ -> Attr.empty
+          if disabled
+          then Attr.empty
+          else (
+            match active_path with
+            | active_key :: active_path when String.equal key active_key ->
+              let safe_triangle =
+                if List.is_empty active_path
+                then
+                  Bonsai_web_toplayer_private_vdom.For_bonsai_web_menu.safe_triangle
+                    ~submenu_id
+                else Attr.empty
+              in
+              let popover =
+                Bonsai_web_toplayer.vdom_popover
+                  ~popover_attrs:[ Styles.container ]
+                  ~overflow_auto_wrapper:false
+                  ~position:Right
+                  ~alignment:Start
+                  (contents'
+                     ~config_attrs:container_config_attrs
+                     ~path_id
+                     ~set_active_path_rev
+                     ~current_path_rev:(key :: current_path_rev)
+                     ~active_path
+                     ~size
+                     items)
+              in
+              Attr.combine safe_triangle popover
+            | _ -> Attr.empty)
         in
         let maybe_test_selector =
           maybe_test_selector_attr items_test_selectors ~key ~current_path_rev
         in
-        let on_click = Attr.on_click (fun _ -> open_submenu) in
-        let on_mouseenter = Attr.on_mouseenter (fun _ -> open_submenu) in
+        let on_click =
+          if disabled then Attr.empty else Attr.on_click (fun _ -> open_submenu)
+        in
+        let on_mouseenter =
+          if disabled then Attr.empty else Attr.on_mouseenter (fun _ -> open_submenu)
+        in
         let state_attrs =
           [ maybe_test_selector
           ; submenu_state_attrs
@@ -522,7 +523,7 @@ let rec contents'
           trigger
           ~state_attrs
           ~is_active:(is_active child)
-          ~is_disabled:false
+          ~is_disabled:disabled
           ~size
       | Submenu { item = Item_data.Inert _; _ } | Submenu { item = Item_data.Single _; _ }
         ->
@@ -530,7 +531,7 @@ let rec contents'
         assert false)
   in
   let attrs = [ Attr.many config_attrs; Styles.content_wrapper ~size; Attr.id path_id ] in
-  {%html.jsx|<div *{attrs}>*{children}</div>|}
+  {%html|<div *{attrs}>*{children}</div>|}
 ;;
 
 module Expert = struct

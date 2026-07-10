@@ -1,0 +1,7 @@
+(library
+ (name bonsai_garden_focusable_list_docs)
+ (libraries bonsai_garden_docs_common bonsai_garden_markdown_render_engine
+   bonsai_web bonsai_web_focusable_list core js_of_ocaml virtual_dom)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx ppx_html ppx_demo ppx_demo_md
+    bonsai.ppx_bonsai)))

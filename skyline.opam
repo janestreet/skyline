@@ -31,6 +31,7 @@ depends: [
   "ppx_bin_and_sexp_digest"
   "ppx_css"
   "ppx_delta_types"
+  "ppx_embed_file"
   "ppx_here"
   "ppx_html"
   "ppx_jane"
@@ -43,12 +44,15 @@ depends: [
   "toplayer"
   "virtual_dom"
   "dune"                     {>= "3.17.0"}
-  "gen_js_api"               {= "1.1.2+ox"}
-  "js_of_ocaml"              {= "6.0.1+ox"}
-  "js_of_ocaml-ppx"          {= "6.0.1+ox"}
-  "omd"                      {= "2.0.0~alpha4+ox"}
+  "gen_js_api"               {>= "1.0.8"}
+  "js_of_ocaml"              {>= "6.0.0"}
+  "js_of_ocaml-ppx"          {>= "6.0.0"}
+  "omd"                      {>= "2.0.0~alpha4"}
 ]
 available: arch != "x86_32"
+conflicts: [
+  "oxcaml-compiler" {< "5.2.0minus39"}
+]
 synopsis: "A Bonsai web component library."
 description: "
 A Bonsai web component library.

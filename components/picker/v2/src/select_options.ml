@@ -62,7 +62,7 @@ module Item = struct
   let maybe_icon ~size ~icon =
     match icon with
     | Some icon ->
-      {%html.jsx|
+      {%html|
         <Bonsai_web_icon.view
           ~attrs:%{[ Styles.icon_left ]}
           ~size:%{Styles.icon_size ~size}
@@ -77,7 +77,7 @@ module Item = struct
     let item_attrs =
       [ Attr.many attrs; item_attr; maybe_disabled; Styles.item_extra_style ]
     in
-    {%html.jsx|
+    {%html|
       <Private_skyline_listbox.Item.view
         *{item_attrs}
         ~size
@@ -116,10 +116,10 @@ let view ?(attrs = []) ~is_focused ~item_attr options =
   let children =
     List.map items ~f:(fun (item : _ Item.t) ->
       let is_focused = is_focused item.value in
-      let item_attr = item_attr item.value in
+      let item_attr = item_attr ~disabled:item.disabled item.value in
       Item.render item ~item_attr ~is_focused ~size)
   in
-  {%html.jsx|
+  {%html|
     <Private_skyline_listbox.Container.view
       %{Styles.content_wrapper}
       %{Attr.tabindex 0}

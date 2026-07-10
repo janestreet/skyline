@@ -277,7 +277,7 @@ let view
   (content : Node.t list)
   =
   let attrs = Style.make ~size ~variant ~pill ~color ~attrs in
-  {%html.jsx|
+  {%html|
     <div
       %{Test_selector.attr_of_opt test_selector}
       %{Attr.many attrs}

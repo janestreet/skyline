@@ -23,11 +23,6 @@ module Segment_state : sig
       | Set_value of (string option -> string option)
       | Append_value of string
   end
-
-  module For_testing : sig
-    val initial_state : t
-    val apply_action : t -> Action.t -> t
-  end
 end
 
 module Segment_spinbutton : sig
@@ -35,25 +30,69 @@ module Segment_spinbutton : sig
       segment's configuration, state machine, and focus handle. *)
 
   module Config : sig
-    type t =
-      { placeholder : string
-      (** Text shown when the segment has no value (e.g. ["HH"], ["MM"]). *)
-      ; aria_label : string
-      (** Accessible label for the spinbutton role, e.g. ["hours"], ["minutes"]. *)
-      ; width : int
-      (** Expected character width. When the value reaches this length, focus
-          auto-advances to the next segment. *)
-      ; display : string -> string
-      (** Prepare an entered value for display. Handles partial inputs — e.g. for an
-          ["HH"] field and a string ["3"], padding is applied to produce ["03"]. *)
-      ; handle_append_keycode : Keyboard_code.t -> string option
-      (** Map a keyboard code to a string to append. Return [None] to ignore. *)
-      ; increment : string option -> string
-      (** Value when pressing ArrowUp. [None] input means the segment is empty. *)
-      ; decrement : string option -> string
-      (** Value when pressing ArrowDown. [None] input means the segment is empty. *)
-      }
-    [@@deriving sexp_of]
+    type t [@@deriving sexp_of]
+
+    (** Makes a config for a spinbutton.
+
+        - [placeholder] — Text shown when the segment has no value (e.g. ["HH"], ["MM"]).
+          Values are padded or truncated to match the width of the placeholder.
+        - [aria_label] — Accessible label for the spinbutton role, e.g. ["hours"],
+          ["minutes"].
+        - [display] — Prepare an entered value for display. Handles partial inputs — e.g.
+          for an ["HH"] field and a string ["3"], padding is applied to produce ["03"].
+        - [handle_append_keycode] — Map a keyboard code for an alphanumeric character to a
+          string to append to the segment's current value. Return [None] to ignore the
+          keystroke.
+        - [jump_one_up] — Value when pressing ArrowUp. [None] input means the segment is
+          empty.
+        - [jump_one_down] — Value when pressing ArrowDown. [None] input means the segment
+          is empty.
+        - [jump_page_up] — Optionally provides a value when pressing PageUp. [None] input
+          means the segment is empty.
+        - [jump_page_down] — Optionally provides a value when pressing PageDown. [None]
+          input means the segment is empty.
+        - [jump_page_top] — Optionally provides a value when pressing Home.
+        - [jump_page_bottom] — Optionally provides a value when pressing End. *)
+    val make
+      :  placeholder:string
+      -> aria_label:string
+      -> display:(string -> string)
+      -> handle_append_keycode:(Keyboard_code.t -> string option)
+      -> jump_one_up:(string option -> string)
+      -> jump_one_down:(string option -> string)
+      -> ?jump_page_up:(string option -> string)
+      -> ?jump_page_down:(string option -> string)
+      -> ?jump_top:(unit -> string)
+      -> ?jump_bottom:(unit -> string)
+      -> unit
+      -> t
+
+    (** Makes a config for a spinbutton with numeric values.
+
+        - [placeholder] — Text shown when the segment has no value (e.g. ["HH"], ["MM"]).
+          Values are padded or truncated to match the width of the placeholder.
+        - [aria_label] — Accessible label for the spinbutton role, e.g. ["hours"],
+          ["minutes"].
+        - [min] — Minimum value allowed for the segment.
+        - [max] — Maximum value allowed for the segment.
+        - [step] — Amount to increment/decrement when pressing PageUp/PageDown.
+        - [default] — Optional value to set when incrementing/decrementing an empty
+          segment *)
+    val make_numeric
+      :  placeholder:string
+      -> aria_label:string
+      -> min:int
+      -> max:int
+      -> step:int
+      -> ?default:int
+      -> unit
+      -> t
+
+    module For_testing : sig
+      (** Wraps into the inclusive interval [min, max]. [min] and [max] must be both
+          nonnegative. *)
+      val wrap_inclusive : min:int -> max:int -> int -> int
+    end
   end
 
   type t =
@@ -80,18 +119,27 @@ module Content : sig
   (** A text delimiter rendered between segments (e.g. [":"] or ["-"]). Does not
       participate in focus navigation. *)
   val delimiter : char:char -> unit -> t
+end
 
-  (** Arbitrary static vdom content. Does not participate in focus navigation. *)
-  val vdom : Vdom.Node.t list -> t
-
+module Action_element : sig
   (** An interactive element that participates in focus navigation (e.g. a calendar icon
       button). [on_activate] fires on click and Space keypress. Arrow keys and Escape
       navigate to adjacent segments. *)
-  val action_element
+  type t
+
+  val content
     :  on_activate:unit Effect.t
     -> ?attrs:Vdom.Attr.t list
     -> Vdom.Node.t list
     -> t
+end
+
+module Hidden_element : sig
+  (** Arbitrary static vdom content that should be styled as visually hidden (e.g. a
+      hidden [<input>]). Does not participate in focus navigation. *)
+  type t
+
+  val content : Vdom.Node.t list -> t
 end
 
 (** Render a segmented input. The [Content.t list] defines the layout: segments,
@@ -101,6 +149,8 @@ val view
   :  ?test_selector:Test_selector.t
   -> ?attrs:Vdom.Attr.t list
   -> ?disabled:bool
+  -> ?action_element:Action_element.t
+  -> ?hidden_element:Hidden_element.t
   -> Content.t list
   -> Vdom.Node.t
 

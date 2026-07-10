@@ -3,7 +3,7 @@ open! Private_skyline_prelude
 
 module Container = struct
   let view ?(attrs = []) children =
-    {%html.jsx|
+    {%html|
       <Skyline_card_v2.view
         style="overflow-x: hidden; overflow-y: auto; max-height: 240px"
         *{attrs}
@@ -39,7 +39,7 @@ module Item = struct
     in
     let text =
       match size with
-      | `Xs -> Classes.text_2xs
+      | `Xs -> Classes.text_xs
       | `Sm -> Classes.text_xs
       | `Md -> Classes.text_sm
       | `Lg -> Classes.text_base
@@ -74,13 +74,16 @@ module Item = struct
       | `Md -> Classes.rounded_md
       | `Lg -> Classes.rounded_lg
     in
+    let cursor =
+      if is_disabled then {%css|cursor: default;|} else {%css|cursor: pointer;|}
+    in
     Attr.many
       [ bg
       ; text
       ; padding
       ; rounded
+      ; cursor
       ; {%css|
-          cursor: pointer;
           text-align: left;
           width: 100%;
           outline: none;
@@ -89,7 +92,7 @@ module Item = struct
   ;;
 
   let view ?(attrs = []) ~size ~is_active ~is_disabled children =
-    {%html.jsx|
+    {%html|
       <div
         *{attrs}
         %{styles ~size ~is_active ~is_disabled}

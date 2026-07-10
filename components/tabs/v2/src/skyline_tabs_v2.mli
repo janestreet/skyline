@@ -72,20 +72,6 @@ val view
   -> label:('a -> Vdom.Node.t)
   -> Vdom.Node.t
 
-(** [view_and_state] is like view, but also returns the setter and currently selected
-    value via the [t] representation. *)
-val view_and_state
-  :  ?test_selectors:'a Test_selector.Keyed.t
-  -> ?attrs:Vdom.Attr.t list
-  -> ?item_attrs:('a -> Vdom.Attr.t list)
-  -> ?size:Skyline_size.t
-  -> ?is_disabled:('a -> bool)
-  -> 'a Nonempty_list.t
-  -> equal:('a -> 'a -> bool)
-  -> state:'a * ('a -> unit Effect.t)
-  -> label:('a -> Vdom.Node.t)
-  -> 'a t
-
 (** [component] creates a stateful tabs component with state management.
 
     Same parameters as [view], but accepting Bonsai values for reactivity. Args

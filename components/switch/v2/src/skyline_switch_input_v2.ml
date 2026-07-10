@@ -104,7 +104,7 @@ let content ?test_selector ?(attrs = []) ~state () =
       let position =
         if filled then {%css|left: calc(100% - 1em);|} else {%css|left: 0;|}
       in
-      {%html.jsx|
+      {%html|
         <div %{Style.indicator_container}>
           <div %{Style.indicator} %{position}></div>
         </div>
@@ -121,7 +121,7 @@ let content ?test_selector ?(attrs = []) ~state () =
     (* We want the root element to be a text node because:
        - the element is sized in [em] units
        - the element needs a text baseline so that it lines up well next to text labels *)
-    {%html.jsx|
+    {%html|
       <Skyline_text_v2.view *{attrs} ~size:%{text_size} ?test_selector>
         <div style="display: flex; height: 1lh; align-items: center">
           <Bonsai_web_checkbox.component

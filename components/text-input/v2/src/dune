@@ -3,8 +3,7 @@
  (public_name skyline.text_input_v2)
  (preprocess
   (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css ppx_html))
- (libraries bonsai bonsai.kernel_components.mirror bonsai_web
+ (libraries bonsai.kernel_components.mirror bonsai_web
    bonsai_web_components.icon core virtual_dom.css_gen js_of_ocaml
-   private_skyline_prelude private_skyline_utility_classes skyline_field_v2
-   skyline_size skyline_tokens_v2)
+   private_skyline_prelude skyline_field_v2 skyline_size)
  (flags :standard -alert -skyline_beta))

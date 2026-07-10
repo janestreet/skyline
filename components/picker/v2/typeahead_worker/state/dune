@@ -1,0 +1,7 @@
+(library
+ (name skyline_picker_v2_typeahead_search_worker_state)
+ (public_name skyline.picker_v2_typeahead_search_worker_state)
+ (libraries core fuzzy_match.search js_of_ocaml
+   skyline_picker_v2_typeahead_search_worker_protocol)
+ (preprocess
+  (pps ppx_jane)))

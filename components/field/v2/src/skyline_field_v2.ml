@@ -39,7 +39,7 @@ module Label_forwarding = struct
 
   let for_label_attr =
     (* Do nothing in environments that might not implement target/preventDefault. *)
-    if not Am_running_how_js.am_in_browser_like_api
+    if not Am_running_how_js.(am_in_browser_like_api am_running_how)
     then Attr.empty
     else (
       let selectors = Js.string [%string "[%{data_exclude_from_label_forwarding}]"] in
@@ -162,7 +162,7 @@ module Label = struct
 
   let content ?test_selector ?(attrs = []) children =
     make (fun ~size ~intent:_ ~disabled:_ ->
-      {%html.jsx|
+      {%html|
         <div
           %{Test_selector.attr_of_opt test_selector}
           %{Style.text size}
@@ -205,7 +205,7 @@ module Footer = struct
 
   let content ?test_selector ?(attrs = []) children =
     make (fun ~size ~intent ~disabled ->
-      {%html.jsx|
+      {%html|
         <div
           %{Test_selector.attr_of_opt test_selector}
           %{Style.text size}
@@ -240,7 +240,7 @@ let view'
           | Left | Right ->
             if disabled then Classes.text_disabled else Classes.text_default
         in
-        {%html.jsx|<div *{attrs} %{text_color}>%{label ~size ~intent ~disabled}</div>|}
+        {%html|<div *{attrs} %{text_color}>%{label ~size ~intent ~disabled}</div>|}
       | None -> Node.none
     ;;
 
@@ -258,12 +258,11 @@ let view'
       match error with
       | Ok () ->
         (match footer with
-         | Some footer ->
-           {%html.jsx|<div *{attrs}>%{footer ~size ~intent ~disabled}</div>|}
+         | Some footer -> {%html|<div *{attrs}>%{footer ~size ~intent ~disabled}</div>|}
          | None -> Node.none)
       | Error error ->
         let error_text = Error.to_string_hum error in
-        {%html.jsx|
+        {%html|
           <div
             %{Footer.Style.text size}
             %{Footer.Style.color ~disabled `Danger}
@@ -277,13 +276,13 @@ let view'
     let contents ?(attrs = []) () =
       let nodes, _ = content_nodes_and_error in
       (* Flex ensures we don't impose our line-height on inline children. *)
-      {%html.jsx|<div *{attrs} %{Classes.flex} %{Classes.flex_col}>*{nodes}</div>|}
+      {%html|<div *{attrs} %{Classes.flex} %{Classes.flex_col}>*{nodes}</div>|}
     ;;
   end
   in
   match label_position with
   | Top ->
-    {%html.jsx|
+    {%html|
       <label
         *{attrs}
         %{Label_forwarding.for_label_attr}
@@ -296,7 +295,7 @@ let view'
       </label>
     |}
   | Left ->
-    {%html.jsx|
+    {%html|
       <label
         *{attrs}
         %{Label_forwarding.for_label_attr}
@@ -309,7 +308,7 @@ let view'
       </label>
     |}
   | Right ->
-    {%html.jsx|
+    {%html|
       <label
         *{attrs}
         %{Label_forwarding.for_label_attr}
@@ -373,7 +372,7 @@ module Grid = struct
   ;;
 
   let view ?test_selector ?(attrs = []) (fields : Vdom.Node.t list) =
-    {%html.jsx|
+    {%html|
       <fieldset
         style="display: grid; grid-template-columns: auto 1fr"
         *{attrs}

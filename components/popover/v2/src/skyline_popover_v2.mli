@@ -66,6 +66,63 @@ module Match_anchor_side : sig
   [@@deriving sexp_of]
 end
 
+module Controller : sig
+  (** Owns everything about a popover that requires [graph]: the open/close state and the
+      outside-click/right-click/Escape autoclose behavior. Autoclose needs graph-time
+      state for tracking where a drag started so that releasing outside the popover
+      doesn't close it.
+
+      Create one with [component], then render the popover by passing the controller to
+      the top-level {!attr} from view code. Or use the higher-level
+      [Skyline_popover_v2.component] / [component'], which compose [Controller.component]
+      and [attr] for you.
+
+      NOTE: A [Controller] should not be shared between different popups. Create a unique
+      one for each call to {!attr}. *)
+  type t
+
+  (** - [?close_on_click_outside] - close the popover when the user clicks (or
+        right-clicks) outside it (default [true]). Escape always closes.
+      - [?state] - supply external [(is_open, set_is_open)] state to control visibility
+        from the outside. If omitted, internal state is created (initially closed). *)
+  val component
+    :  ?close_on_click_outside:bool Bonsai.t
+    -> ?state:bool Bonsai.t * (bool -> unit Effect.t) Bonsai.t
+    -> Bonsai.graph @ local
+    -> t Bonsai.t
+
+  val is_open : t -> bool
+  val set_is_open : t -> bool -> unit Effect.t
+end
+
+(** [attr] is the stateless core of this module: it builds the popover anchor attr from a
+    controller and plain values, with no [graph] involved, so it can be called from view
+    code (e.g. inside a [let%arr], or from a [Skyline_field_v2.Content.t] producer).
+    Attach the result to the popover's anchor element. The popover is shown whenever
+    [Controller.is_open] is [true] (when [false], [attr] returns [Vdom.Attr.empty]).
+
+    The final argument is the popover contents. Unlike [component], the contents are not
+    wrapped in a [Skyline_card_v2.view]; since they are plain vdom, callers can wrap them
+    in a card themselves (this matches [component']'s behavior).
+
+    Tradeoffs vs. [component] / [component']:
+    - The contents cannot create their own Bonsai state or use [on_activate] /
+      [on_deactivate] lifecycle hooks; any state must be created by the caller at graph
+      time and rendered into the contents. The contents are also computed even while the
+      popover is closed, unless the caller branches on [Controller.is_open] themselves.
+    - In exchange, the popover contents can be built anywhere plain vdom can, so stateless
+      view helpers can declare what goes in the popover.
+
+    Optional arguments have the same meaning and defaults as on [component]. *)
+val attr
+  :  ?position:Position.t
+  -> ?alignment:Alignment.t
+  -> ?match_anchor_side_length:Match_anchor_side.t
+  -> ?focus_on_show:bool
+  -> controller:Controller.t
+  -> Vdom.Node.t
+  -> Vdom.Attr.t
+
 (** [t] is the runtime handle for a popover returned by [component] or [component'].
 
     - [anchor] An attribute to attach to the popover's anchor element. When attached, the
@@ -121,7 +178,11 @@ type t = private
     - Popovers are rendered in the browser top layer. They are not DOM-children of the
       anchor; use design tokens or global styles for styling the content.
     - The returned [anchor] attribute does not itself toggle visibility. Open/close the
-      popover by driving [is_open]/[set_is_open], or use [~hide] from within [contents]. *)
+      popover by driving [is_open]/[set_is_open], or use [~hide] from within [contents].
+    - [component] and [component'] are compositions of the lower-level
+      [Controller.component] and [attr] APIs, plus gating the contents' activity on the
+      popover being open (which is what makes [on_activate] / [on_deactivate] lifecycle
+      hooks inside [contents] work). *)
 val component
   :  ?position:Position.t Bonsai.t
   -> ?alignment:Alignment.t Bonsai.t

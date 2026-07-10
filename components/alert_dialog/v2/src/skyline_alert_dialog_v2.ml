@@ -11,7 +11,7 @@ let view
   ~title
   ~close
   =
-  [%html.jsx
+  [%html
     {|
       <Skyline_dialog_v2.view
         ?test_selector
@@ -25,6 +25,7 @@ let view
         </>
         <Skyline_dialog_v2.Section.footer style="flex-direction: row-reverse">
           <Skyline_button_v2.view
+            ~type_attr:%{Submit}
             ?test_selector:%{button_test_selector}
             ~intent:%{button_intent}
             ~on_click:%{close}

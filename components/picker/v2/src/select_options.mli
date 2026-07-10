@@ -51,6 +51,6 @@ val all_values : 'a t -> 'a list
 val view
   :  ?attrs:Vdom.Attr.t list
   -> is_focused:('a -> bool)
-  -> item_attr:('a -> Vdom.Attr.t)
+  -> item_attr:(disabled:bool -> 'a -> Vdom.Attr.t)
   -> 'a t
   -> Vdom.Node.t

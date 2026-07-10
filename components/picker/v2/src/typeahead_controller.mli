@@ -57,6 +57,10 @@ module Highlighted_splits = Highlighted_splits
       component should reset after each selection.
     - [?on_select] - effect run whenever the user selects an item. The payload depends on
       the selection mode; see [Selection_mode] for more information.
+    - [?size] - controls the size of controller-rendered popover contents, including
+      suggestion rows and the select-style search input (default [Md]). This should match
+      the [size] used by the paired input's enclosing [Skyline_field_v2.view]; the
+      controller cannot infer it from [Combobox_input.content] or [Select_input.content].
     - [?state] - a [(selected, set_selected)] pair. Use this if you need a controlled
       selection state, e.g. if the selection must live outside the component.
     - [?open_state] - a [(is_open, set_is_open)] pair for the popover open/closed state.
@@ -77,6 +81,7 @@ val component
   -> ?state:'selection Bonsai.t * ('selection -> unit Effect.t) Bonsai.t
   -> ?open_state:bool Bonsai.t * (bool -> unit Effect.t) Bonsai.t
   -> ?on_select:('on_select_payload -> unit Effect.t) Bonsai.t
+  -> ?size:Skyline_size.t Bonsai.t
   -> to_string:('a -> string)
   -> data:'a Typeahead_data_source.t
   -> ?render_suggestion:
@@ -129,10 +134,17 @@ module Private : sig
       [?on_arrow_left_at_start] fires when the user presses ArrowLeft with the cursor at
       the beginning of the text input. It is intended for callers that want to move focus
       into a preceding element (e.g. the rightmost selection chip) when the user tries to
-      "walk off the left edge" of the input. *)
+      "walk off the left edge" of the input.
+
+      [?tab_selects_current_item] (default [false]) makes Tab (without Shift) commit the
+      currently focused suggestion, like Enter, and close the popover. The Tab keypress is
+      swallowed so the commit is visible before focus moves; when there is nothing to
+      commit (popover closed or no suggestions), Tab falls through to normal focus
+      navigation. *)
   val for_combobox_input
     :  on_backspace_when_empty:unit Effect.t
     -> ?on_arrow_left_at_start:unit Effect.t
+    -> ?tab_selects_current_item:bool
     -> (_, _) t
     -> Vdom.Attr.t
 

@@ -15,7 +15,7 @@ let view
   ~close
   ~confirm
   =
-  [%html.jsx
+  [%html
     {|
       <Skyline_dialog_v2.view
         ?test_selector
@@ -29,6 +29,7 @@ let view
         </>
         <Skyline_dialog_v2.Section.footer style="flex-direction: row-reverse">
           <Skyline_button_v2.view
+            ~type_attr:%{Submit}
             ?test_selector:%{confirm_test_selector}
             ~intent:%{confirm_intent}
             ~on_click:%{confirm}
@@ -38,6 +39,7 @@ let view
             #{confirm_label}
           </>
           <Skyline_button_v2.view
+            ~type_attr:%{Submit}
             ?test_selector:%{cancel_test_selector}
             ~intent:%{cancel_intent}
             ~on_click:%{close}
@@ -137,12 +139,13 @@ module Deprecated = struct
         | `Unavailable (Some reason) | `Unauthorized reason -> Some reason
         | _ -> None
       in
-      [%html.jsx
+      [%html
         {|
           <Skyline_dialog_v2.Content.fragment>
             <Skyline_dialog_v2.Section.separator />
             <Skyline_dialog_v2.Section.footer style="flex-direction: row-reverse">
               <Skyline_button_v2.view
+                ~type_attr:%{Submit}
                 ?test_selector:%{confirm_selector}
                 ~intent:%{`Primary}
                 ~on_click:%{on_click}
@@ -154,6 +157,7 @@ module Deprecated = struct
                 #{action_label}
               </>
               <Skyline_button_v2.view
+                ~type_attr:%{Submit}
                 ?test_selector:%{close_selector}
                 ~intent:%{`Secondary}
                 ~on_click:%{close}

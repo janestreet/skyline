@@ -63,6 +63,7 @@ type ('a, 'selection) t =
   ; for_combobox_input :
       on_backspace_when_empty:unit Effect.t
       -> on_arrow_left_at_start:unit Effect.t option
+      -> tab_selects_current_item:bool
       -> Vdom.Attr.t
   ; focus_combobox_input : unit Effect.t
   ; for_select_anchor : Vdom.Attr.t
@@ -79,8 +80,16 @@ module Private = struct
   let for_combobox_anchor t = t.for_combobox_anchor
   let combobox_input_state t = t.combobox_input_state
 
-  let for_combobox_input ~on_backspace_when_empty ?on_arrow_left_at_start t =
-    t.for_combobox_input ~on_backspace_when_empty ~on_arrow_left_at_start
+  let for_combobox_input
+    ~on_backspace_when_empty
+    ?on_arrow_left_at_start
+    ?(tab_selects_current_item = false)
+    t
+    =
+    t.for_combobox_input
+      ~on_backspace_when_empty
+      ~on_arrow_left_at_start
+      ~tab_selects_current_item
   ;;
 
   let focus_combobox_input t = t.focus_combobox_input
@@ -90,8 +99,18 @@ module Private = struct
 end
 
 module Selection_checkbox = struct
+  let checkbox_size_for_suggestion_size = function
+    | `Xs -> `Xs
+    | `Sm -> `Sm
+    | `Md | `Lg ->
+      (* We map [`Md] to [`Lg] just because we think the Lg checkbox looks a bit better
+         next to the Md text that [Private_skyline_listbox.Item] uses internally. *)
+      `Lg
+  ;;
+
   (** An inert checkbox. Not clickable or interactable at all. *)
-  let view ~size ~checked () =
+  let view ~suggestion_size ~checked () =
+    let size = checkbox_size_for_suggestion_size suggestion_size in
     let state = checked, fun (_ : bool) -> Effect.Ignore in
     {%html|
       <Skyline_field_v2.view
@@ -116,6 +135,7 @@ let render_suggestion_items
   ~render_suggestion
   ~highlight
   ~on_select_item
+  ~size
   ()
   =
   let focusable = Focusable_list.focusable focusable_list in
@@ -138,15 +158,15 @@ let render_suggestion_items
           <div style="display: flex; align-items: center; gap: 8px">
             <Selection_checkbox.view
               ~checked:%{is_multi_selected item}
-              ~size:%{`Lg}
+              ~suggestion_size:%{size}
             />
             %{render_suggestion item ~highlight}
           </div>
         |}
     in
-    {%html.jsx|
+    {%html|
       <Private_skyline_listbox.Item.view
-        ~size:%{`Md}
+        ~size
         ~is_active:%{is_active}
         ~is_disabled:%{false}
         *{[ Scroll_selectors.item_attr ~owner:path_id ~index
@@ -158,6 +178,37 @@ let render_suggestion_items
         %{content}
       </>
     |})
+;;
+
+let compact_spacing_for_size = function
+  | `Xs -> `Px 1
+  | `Sm -> `Px 2
+  | `Md | `Lg -> `Px 4
+;;
+
+let suggestion_list_gap = function
+  | `Xs | `Sm -> `Px 0
+  | `Md | `Lg -> `Px 4
+;;
+
+let suggestion_list_style ~size =
+  let gap = suggestion_list_gap size in
+  let padding_bottom = compact_spacing_for_size size in
+  [%css
+    {|
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      gap: %{gap#Css_gen.Length};
+      padding-bottom: %{padding_bottom#Css_gen.Length};
+    |}]
+;;
+
+let select_search_input_wrapper_style ~size =
+  let padding = compact_spacing_for_size size in
+  [%css {|padding: %{padding#Css_gen.Length};|}]
 ;;
 
 (** The popover open/close state for the typeahead controller. *)
@@ -361,7 +412,8 @@ module Input_state = struct
     let set_selected =
       let%arr inject and set_controlled in
       fun selected ->
-        Effect.Many [ set_controlled selected; inject (Set_selected selected) ]
+        let%bind.Effect () = set_controlled selected in
+        inject (Set_selected selected)
     in
     let select_item =
       let%arr inject and close and on_select and state and set_controlled in
@@ -377,12 +429,8 @@ module Input_state = struct
         let close_effect =
           if keeps_popover_open selection_mode then Effect.Ignore else close
         in
-        Effect.Many
-          [ inject (Select_item item)
-          ; set_controlled new_selection
-          ; close_effect
-          ; on_select_effect
-          ]
+        let%bind.Effect () = set_controlled new_selection in
+        Effect.Many [ inject (Select_item item); close_effect; on_select_effect ]
     in
     let deselect_item =
       let%arr inject and on_select and state and set_controlled in
@@ -395,8 +443,8 @@ module Input_state = struct
           | None -> Effect.Ignore
           | Some payload -> on_select payload
         in
-        Effect.Many
-          [ inject (Deselect_item item); set_controlled new_selection; on_select_effect ]
+        let%bind.Effect () = set_controlled new_selection in
+        Effect.Many [ inject (Deselect_item item); on_select_effect ]
     in
     let set_query_and_open_picker =
       let%arr inject and open_ in
@@ -428,6 +476,7 @@ let component
   ?state
   ?open_state:controlled_open_state
   ?(on_select = Bonsai.return (fun (_ : on_select_payload) -> Effect.Ignore))
+  ?(size = Bonsai.return (`Md : Skyline_size.t))
   ~(to_string : item -> string)
   ~data:(data_source : item Typeahead_data_source.t)
   ?render_suggestion
@@ -478,27 +527,27 @@ let component
   let focusable_list, inject_focus =
     let suggestion_ids =
       let%arr suggestions in
-      Iarray.of_list (List.mapi suggestions ~f:(fun i _ -> i))
+      Iarray.init (List.length suggestions) ~f:Fn.id
     in
     Focusable_list.create ~wrap_around:(return true) (module Int) suggestion_ids graph
   in
   let item_attr = Focusable_list.item_attr focusable_list in
-  let focused_suggestion = Bonsai.map focusable_list ~f:Focusable_list.focusable in
+  let focused_suggestion_index = Bonsai.map focusable_list ~f:Focusable_list.focusable in
   let () =
-    match Am_running_how_js.am_in_browser_like_api with
+    match Am_running_how_js.(am_in_browser_like_api am_running_how) with
     | false -> ()
     | true ->
       Bonsai.Edge.on_change
         ~trigger:`After_display
-        (Bonsai.both is_open focused_suggestion)
+        (Bonsai.both is_open focused_suggestion_index)
         ~equal:[%equal: bool * int option]
         ~callback:
           (let%arr path_id in
-           fun (is_open, focused_suggestion) ->
-             match is_open, focused_suggestion with
-             | true, Some focused_suggestion ->
+           fun (is_open, focused_suggestion_index) ->
+             match is_open, focused_suggestion_index with
+             | true, Some focused_suggestion_index ->
                let selector =
-                 Scroll_selectors.selector ~owner:path_id ~index:focused_suggestion
+                 Scroll_selectors.selector ~owner:path_id ~index:focused_suggestion_index
                in
                let scroll_effect =
                  let%map.Option element =
@@ -540,47 +589,38 @@ let component
         and render_suggestion
         and path_id
         and is_multi_selected
-        and render_popover_contents in
-        if List.is_empty suggestions
-        then Node.none
-        else (
-          let items =
-            render_suggestion_items
-              ?is_multi_selected
-              ~suggestions
-              ~focusable_list
-              ~path_id
-              ~item_attr
-              ~render_suggestion
-              ~highlight
-              ~on_select_item:(fun item -> select_item (Some item))
-              ()
-          in
-          let suggestions_list =
+        and render_popover_contents
+        and size in
+        let suggestions_list =
+          if List.is_empty suggestions
+          then Node.none
+          else (
+            let items =
+              render_suggestion_items
+                ?is_multi_selected
+                ~suggestions
+                ~focusable_list
+                ~path_id
+                ~item_attr
+                ~render_suggestion
+                ~highlight
+                ~on_select_item:(fun item -> select_item (Some item))
+                ~size
+                ()
+            in
             {%html|
-              <div
-                %{Focusable_list.container_attr focusable_list}
-                style="
-                  display: flex;
-                  flex-direction: column;
-                  flex: 1 1 auto;
-                  min-height: 0;
-                  overflow-y: auto;
-                  gap: 4px;
-                  padding-bottom: 4px;
-                "
-              >
+              <div %{Focusable_list.container_attr focusable_list} %{suggestion_list_style ~size}>
                 *{items}
               </div>
-            |}
-          in
-          {%html.jsx|
-            <Private_skyline_listbox.Container.view
-              style="display: flex; flex-direction: column; overflow: hidden"
-            >
-              %{render_popover_contents suggestions_list}
-            </>
-          |}))
+            |})
+        in
+        {%html|
+          <Private_skyline_listbox.Container.view
+            style="display: flex; flex-direction: column; overflow: hidden"
+          >
+            %{render_popover_contents suggestions_list}
+          </>
+        |})
       graph
   in
   let static_anchor_attr =
@@ -608,6 +648,7 @@ let component
         and controller_item_attr = item_attr
         and controller_is_multi_selected = is_multi_selected
         and controller_render_popover_contents = render_popover_contents
+        and controller_size = size
         and popover_close in
         let close_if_needed =
           if keeps_popover_open then Effect.Ignore else popover_close
@@ -649,31 +690,24 @@ let component
                 ~highlight:controller_highlight
                 ~on_select_item:(fun item ->
                   Effect.Many [ controller_select_item (Some item); close_if_needed ])
+                ~size:controller_size
                 ()
             in
-            {%html.jsx|
+            {%html|
               <div
                 %{Focusable_list.container_attr controller_focusable_list}
-                style="
-                  display: flex;
-                  flex-direction: column;
-                  flex: 1 1 auto;
-                  min-height: 0;
-                  overflow-y: auto;
-                  gap: 4px;
-                  padding-bottom: 4px;
-                "
+                %{suggestion_list_style ~size:controller_size}
               >
                 *{items}
               </div>
             |})
         in
-        {%html.jsx|
+        {%html|
           <Private_skyline_listbox.Container.view
             style="display: flex; flex-direction: column; overflow: hidden"
           >
-            <div style="padding: 4px">
-              <Skyline_field_v2.view ~size:%{`Md} ~intent:%{`Primary}>
+            <div %{select_search_input_wrapper_style ~size:controller_size}>
+              <Skyline_field_v2.view ~size:%{controller_size} ~intent:%{`Primary}>
                 <Skyline_text_input_v2.content
                   %{Attr.autofocus true}
                   %{Attr.on_keydown on_keydown}
@@ -728,7 +762,16 @@ let component
     static_anchor_attr
   in
   let combobox_input_state = input_query, set_query_and_open_picker in
-  let for_combobox_input ~on_backspace_when_empty ~on_arrow_left_at_start =
+  let focused_suggestion =
+    (* [suggestions] is [[]] while the popover is closed, so this is [None] unless the
+       popover is open. *)
+    Option.bind (Focusable_list.focusable focusable_list) ~f:(List.nth suggestions)
+  in
+  let for_combobox_input
+    ~on_backspace_when_empty
+    ~on_arrow_left_at_start
+    ~tab_selects_current_item
+    =
     let set_input_query_to ~focused_idx =
       match focused_idx with
       | None -> Effect.Ignore
@@ -778,18 +821,34 @@ let component
         if is_open
         then (
           evt##preventDefault;
-          match Bonsai_web_focusable_list.focusable focusable_list with
+          match focused_suggestion with
           | None -> Effect.Ignore
-          | Some idx ->
-            (match List.nth suggestions idx with
-             | None -> Effect.Ignore
-             | Some item -> select_item (Some item)))
+          | Some item -> select_item (Some item))
         else Effect.Ignore
       | Escape ->
         evt##preventDefault;
         if is_open then close else select_item None
       | Backspace ->
         if String.is_empty input_query then on_backspace_when_empty else Effect.Ignore
+      | Tab ->
+        (* Like Enter, Tab commits the focused suggestion, but doesn't call
+           [preventDefault] as aggressively as Enter. *)
+        let tab_should_select =
+          (* Shift+Tab means "go back"; it should never commit a selection. *)
+          tab_selects_current_item && not (Js_of_ocaml.Js.to_bool evt##.shiftKey)
+        in
+        (match focused_suggestion with
+         | Some item when tab_should_select ->
+           evt##preventDefault;
+           Effect.Many
+             [ select_item (Some item)
+             ; (* [select_item] already closes the popover in single-select modes, but
+                  [Multi_ux] keeps it open. Closing ensures the next Tab has nothing to
+                  commit and falls through to normal focus navigation, rather than
+                  trapping the user in the input. *)
+               close
+             ]
+         | Some _ | None -> Effect.Ignore)
       | _ -> Effect.Ignore
     in
     let on_click _ = if not is_open then open_ else Effect.Ignore in

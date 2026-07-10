@@ -178,7 +178,7 @@ end
 module Border = struct
   (* Border colors. *)
   let default = color ~light:(alpha zinc900 16) ~dark:(alpha white 24)
-  let default_alt = color ~light:(alpha zinc900 32) ~dark:(alpha white 40)
+  let default_alt = color ~light:(alpha zinc900 48) ~dark:(alpha white 64)
   let primary = color ~light:blue500 ~dark:blue500
   let danger = color ~light:red500 ~dark:red500
   let success = color ~light:green500 ~dark:green500

@@ -120,7 +120,7 @@ let content ?test_selector ?(attrs = []) ?(indeterminate = false) ~state () =
       if indeterminate
       then
         Some
-          {%html.jsx|
+          {%html|
             <Bonsai_web_icon.view
               style="font-size: calc(1em - 2px)"
               ~size:%{`Em 1}
@@ -130,7 +130,7 @@ let content ?test_selector ?(attrs = []) ?(indeterminate = false) ~state () =
       else if checked
       then
         Some
-          {%html.jsx|
+          {%html|
             <Bonsai_web_icon.view
               style="font-size: calc(1em - 2px)"
               ~size:%{`Em 1}
@@ -150,7 +150,7 @@ let content ?test_selector ?(attrs = []) ?(indeterminate = false) ~state () =
     (* We want the root element to be a text node because:
        - the element is sized in [em] units
        - the element needs a text baseline so that it lines up well next to text labels *)
-    {%html.jsx|
+    {%html|
       <Skyline_text_v2.view *{attrs} ~size:%{text_size} ?test_selector>
         <div style="display: flex; height: 1lh; align-items: center">
           <Bonsai_web_checkbox.component

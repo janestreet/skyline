@@ -381,7 +381,7 @@ let view ?test_selector ?(attrs = []) ?(disabled = false) ~(state : State.t) chi
     children
     |> List.mapi ~f:(fun idx child ->
       let focuses_before, focuses_after =
-        let focuses_before, focuses = List.split_n focuses idx in
+        let #(focuses_before, focuses) = List.split_n focuses idx in
         let focuses_after = List.drop focuses 1 in
         ( focuses_before |> List.filter_map ~f:Fn.id
         , focuses_after |> List.filter_map ~f:Fn.id )
@@ -407,7 +407,7 @@ let view ?test_selector ?(attrs = []) ?(disabled = false) ~(state : State.t) chi
      Clicking on the whitespace in this input focuses the first part (via [on_focus]), but
      shift-tab from the first part does NOT land back on the parent (triggering
      [on_focus], focusing the first part, and creating a focus trap). *)
-  {%html.jsx|
+  {%html|
     <div
       %{Test_selector.attr_of_opt test_selector}
       *{attrs}
@@ -420,7 +420,7 @@ let view ?test_selector ?(attrs = []) ?(disabled = false) ~(state : State.t) chi
 ;;
 
 let make_part ?test_selector ?(attrs = []) () ~value ~attrs:inner_attrs =
-  {%html.jsx|
+  {%html|
     <div %{Test_selector.attr_of_opt test_selector} *{attrs} *{inner_attrs}>
       #{value}
     </div>
@@ -441,7 +441,7 @@ let dd_part ?test_selector ?attrs () : Content.t =
 
 let delimiter ?test_selector ?(attrs = []) ?(char = '-') () : Content.t =
   Content.Vdom
-    {%html.jsx|
+    {%html|
       <div
         %{Test_selector.attr_of_opt test_selector}
         *{attrs}
@@ -455,7 +455,7 @@ let delimiter ?test_selector ?(attrs = []) ?(char = '-') () : Content.t =
 let calendar_icon ?test_selector ?(attrs = []) children : Content.t =
   Content.Date_picker_icon
     (fun ~attrs:inner_attrs ->
-      {%html.jsx|
+      {%html|
         <div %{Test_selector.attr_of_opt test_selector} *{attrs} *{inner_attrs}>
           *{children}
         </div>

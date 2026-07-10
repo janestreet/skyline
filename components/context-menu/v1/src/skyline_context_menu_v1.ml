@@ -182,6 +182,7 @@ module Item = struct
   let submenu ?key ?(disabled = false) ?(icon = Codicons.Blank) ?intent ~title items =
     Submenu
       { key = Option.value key ~default:title
+      ; disabled
       ; item = { Data.icon; title; detail = ""; intent }
       ; items = (if disabled then [] else items)
       }
@@ -250,6 +251,7 @@ let single_menu_item
            else Vdom.Attr.empty)
        :: (if not disabled then Vdom.Attr.on_click (const on_click) else Vdom.Attr.empty)
        :: Vdom.Attr.tabindex (-1)
+       :: (if disabled then Vdom.Attr.disabled else Vdom.Attr.empty)
        :: (if not (String.is_empty detail)
            then Vdom.Attr.title detail
            else Vdom.Attr.empty)
@@ -321,56 +323,49 @@ let rec contents'
         in
         has_prev_items := true;
         Some section)
-    | Submenu { items = []; item = { icon; title; intent; _ }; _ } ->
+    | Submenu { key; item = { icon; title; intent; _ }; items; disabled } as item ->
       has_prev_items := true;
-      single_menu_item
-        ~disabled:true
-        ~submenu:true
-        ~icon
-        ~intent
-        ~on_click:Effect.Ignore
-        ~on_mouseenter:Effect.Ignore
-        ~active:false
-        title
-      |> Option.some
-    | Submenu { key; item = { icon; title; intent; _ }; items } as item ->
-      has_prev_items := true;
+      let disabled = disabled || List.is_empty items in
       let submenu =
-        match active_path with
-        | active_key :: active_path when String.equal key active_key ->
-          let submenu_id = [%string "%{path_id}/%{key}"] in
-          let safe_triangle =
-            if List.is_empty active_path
-            then
-              Bonsai_web_toplayer_private_vdom.For_bonsai_web_menu.safe_triangle
+        if disabled
+        then Vdom.Attr.empty
+        else (
+          match active_path with
+          | active_key :: active_path when String.equal key active_key ->
+            let submenu_id = [%string "%{path_id}/%{key}"] in
+            let safe_triangle =
+              if List.is_empty active_path
+              then
+                Bonsai_web_toplayer_private_vdom.For_bonsai_web_menu.safe_triangle
+                  ~submenu_id
+              else Vdom.Attr.empty
+            in
+            let contents =
+              child_menu_container
                 ~submenu_id
-            else Vdom.Attr.empty
-          in
-          let contents =
-            child_menu_container
-              ~submenu_id
-              (contents'
-                 ~path_id
-                 ~set_active_path_rev
-                 ~current_path_rev:(key :: current_path_rev)
-                 ~active_path
-                 items)
-          in
-          Vdom.Attr.combine
-            (Bonsai_web_toplayer.vdom_popover
-               ~popover_attrs:[ Vdom.Attr.style Style.clear_popover_styles ]
-               ~overflow_auto_wrapper:false
-               ~position:Right
-               ~alignment:Start
-               ~offset:{ main_axis = 2.; cross_axis = 0. }
-               contents)
-            safe_triangle
-        | _ -> Vdom.Attr.empty
+                (contents'
+                   ~path_id
+                   ~set_active_path_rev
+                   ~current_path_rev:(key :: current_path_rev)
+                   ~active_path
+                   items)
+            in
+            Vdom.Attr.combine
+              (Bonsai_web_toplayer.vdom_popover
+                 ~popover_attrs:[ Vdom.Attr.style Style.clear_popover_styles ]
+                 ~overflow_auto_wrapper:false
+                 ~position:Right
+                 ~alignment:Start
+                 ~offset:{ main_axis = 2.; cross_axis = 0. }
+                 contents)
+              safe_triangle
+          | _ -> Vdom.Attr.empty)
       in
       let open_submenu = set_active_path_rev (key :: current_path_rev) in
       single_menu_item
         ~attrs:[ submenu ]
         ~submenu:true
+        ~disabled
         ~icon
         ~intent
         ~on_click:open_submenu

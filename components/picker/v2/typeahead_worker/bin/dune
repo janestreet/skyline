@@ -1,0 +1,7 @@
+(executables
+ (names typeahead_worker)
+ (modes byte exe js)
+ (libraries js_of_ocaml skyline_picker_v2_typeahead_search_worker_protocol
+   skyline_picker_v2_typeahead_search_worker_state)
+ (preprocess
+  (pps ppx_jane)))

@@ -49,7 +49,7 @@ module Header = struct
         ; Attr.many attrs
         ]
     in
-    {%html.jsx|
+    {%html|
       <summary %{Style.summary} %{attrs}>
         <Bonsai_web_icon.view
           %{Style.chevron}
@@ -128,7 +128,7 @@ module Container = struct
   let style = Classes.[ text_default; bg_one; border 1; border_default; rounded_sm ]
 
   let view ?test_selector ?(attrs = []) children =
-    {%html.jsx|
+    {%html|
       <div
         %{Test_selector.attr_of_opt test_selector}
         %{Style.container}
@@ -170,7 +170,7 @@ let view
       | None -> Effect.Ignore
       | Some element -> on_toggle ~open_:(Js.to_bool element##.open_))
   in
-  {%html.jsx|
+  {%html|
     <Container.view ?test_selector ?attrs>
       <details %{open_attr} %{Style.details} %{name_attr} %{on_toggle}>
         %{header ~attr:Attr.empty ~size} *{List.map children ~f:(fun section -> section ~size)}
@@ -210,7 +210,7 @@ module Controlled = struct
       in
       Attr.many [ on_summary_click; a11y ]
     in
-    {%html.jsx|
+    {%html|
       <Container.view ?test_selector ?attrs>
         <details %{open_attr} %{Style.details}>
           %{header ~attr:header_attr ~size}

@@ -84,7 +84,8 @@ let component
       ]
     in
     let append_label_in_test node =
-      if Am_running_how_js.am_in_browser_like_api || String.is_empty label
+      if Am_running_how_js.(am_in_browser_like_api am_running_how)
+         || String.is_empty label
       then node
       else Vdom.Node.fragment [ node; Skyline_text_v1.span ~secondary:disabled label ]
     in

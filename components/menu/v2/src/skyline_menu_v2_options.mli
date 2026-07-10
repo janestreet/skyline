@@ -105,6 +105,7 @@ module Sub_menu : sig
 
         - [?test_selector] test selector for this trigger
         - [?attrs] additional attributes to customize the element (user-provided styling)
+        - [?disabled] disables the trigger (default [false])
         - [?icon] optional icon to display with the trigger (a chevron icon is
           automatically added to indicate the sub-menu)
         - [?suffix] optional node rendered to the right of the trigger content
@@ -114,6 +115,7 @@ module Sub_menu : sig
     val create
       :  ?test_selector:Test_selector.t
       -> ?attrs:Vdom.Attr.t list
+      -> ?disabled:bool
       -> ?icon:Bonsai_web_icon.t
       -> ?suffix:Vdom.Node.t
       -> Vdom.Node.t list

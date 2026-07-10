@@ -82,7 +82,7 @@ module Elements = struct
       | Some placeholder -> Attr.placeholder placeholder
     in
     let maybe_disabled_attr = if disabled then Classes.disabled else Attr.empty in
-    {%html.jsx|
+    {%html|
       <input
         *{attrs}
         ?key
@@ -113,7 +113,7 @@ let content' ?test_selector ?placeholder ?(attrs = []) ?(error = Ok ()) ~input_a
 let content ?test_selector ?attrs ?placeholder ~state () =
   let value, set_value = state in
   let input_attrs =
-    [ Attr.value_prop value; Attr.on_input (fun _ new_value -> set_value new_value) ]
+    [ Attr.value value; Attr.on_input (fun _ new_value -> set_value new_value) ]
   in
   content' ?test_selector ?placeholder ?attrs ~input_attrs ()
 ;;
@@ -154,7 +154,7 @@ module Composite = struct
             flex: 1;
             min-width: 0;
           |}
-        ; Attr.value_prop value
+        ; Attr.value value
         ; Attr.on_input (fun _ new_value -> set_value new_value)
         ; Attr.many attrs
         ]
@@ -196,7 +196,7 @@ module Composite = struct
       let children =
         List.map children ~f:(fun (child : Content.t) -> child ~size ~intent ~disabled)
       in
-      {%html.jsx|<div *{wrapper_attrs}>*{children}</div>|})
+      {%html|<div *{wrapper_attrs}>*{children}</div>|})
   ;;
 end
 
@@ -294,7 +294,7 @@ module Numeric = struct
     let input_attrs =
       [ Attr.create "inputmode" "decimal"
       ; prevent_non_numeric_keys
-      ; Attr.value_prop raw
+      ; Attr.value raw
       ; Attr.on_input (fun _ new_value -> set_raw new_value)
       ]
     in

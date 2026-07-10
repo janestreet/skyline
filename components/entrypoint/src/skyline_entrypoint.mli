@@ -21,6 +21,9 @@ val install
   -> (local_ Bonsai.graph -> Vdom.Node.t Bonsai.t)
   -> (local_ Bonsai.graph -> Vdom.Node.t Bonsai.t)
 
+(** Provides the theme that best matches the user's browser settings. *)
+val infer_theme_from_system : local_ Bonsai.graph -> Skyline_theme_v1.Style.t Bonsai.t
+
 (** The currently installed Skyline theme. *)
 val theme : local_ Bonsai.graph -> Skyline_theme_v1.Style.t Bonsai.t
 

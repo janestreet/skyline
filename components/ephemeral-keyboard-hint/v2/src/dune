@@ -5,6 +5,4 @@
   (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css ppx_html))
  (libraries bonsai_web bonsai_web_components.keyboard_shortcut core
    virtual_dom.css_gen ppx_css.inline_css private_skyline_prelude
-   private_skyline_utility_classes skyline_tokens_v2 tailwind_colors
-   virtual_dom.keyboard)
- (flags :standard -alert -skyline_beta))
+   skyline_tokens_v2 virtual_dom.keyboard))

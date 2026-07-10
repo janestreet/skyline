@@ -174,7 +174,7 @@ let view
   ?(layout = `Inline)
   children
   =
-  [%html.jsx
+  [%html
     {|
       <span
         *{attrs}
@@ -198,7 +198,7 @@ let monospace
   ?(layout = `Inline)
   children
   =
-  [%html.jsx
+  [%html
     {|
       <span
         *{attrs}
@@ -217,9 +217,9 @@ let monospace
 let target_to_icon = function
   | Effect.Open_url_target.New_tab_or_window ->
     Some
-      {%html.jsx|
+      {%html|
         <Bonsai_web_icon.view
-          style="display: inline; margin-left: 0.2em"
+          style="display: inline; margin-left: 0.2em; vertical-align: baseline"
           ~size:%{`Em_float 0.75}
           ~icon:%{Lucide.external_link}
         />
@@ -250,7 +250,7 @@ let link
       (* Without href, ensure focusability for keyboard users. *)
       [ Attr.tabindex 0; Attr.on_click (fun _ -> on_click) ], None
   in
-  {%html.jsx|
+  {%html|
     <a
       *{attrs}
       *{on_click_attrs}
@@ -267,7 +267,7 @@ let link
 ;;
 
 let h1 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html.jsx
+  [%html
     {|
       <h1
         *{attrs}
@@ -283,7 +283,7 @@ let h1 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h2 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html.jsx
+  [%html
     {|
       <h2
         *{attrs}
@@ -299,7 +299,7 @@ let h2 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h3 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html.jsx
+  [%html
     {|
       <h3
         *{attrs}
@@ -315,7 +315,7 @@ let h3 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h4 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html.jsx
+  [%html
     {|
       <h4
         *{attrs}
@@ -331,7 +331,7 @@ let h4 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h5 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html.jsx
+  [%html
     {|
       <h5
         *{attrs}
@@ -347,7 +347,7 @@ let h5 ?test_selector ?(attrs = []) ?(color = `Default) children =
 ;;
 
 let h6 ?test_selector ?(attrs = []) ?(color = `Default) children =
-  [%html.jsx
+  [%html
     {|
       <h6
         *{attrs}
@@ -371,7 +371,7 @@ let inline_code
   children
   =
   let default_size = {%css|font-size: 0.875em;|} in
-  [%html.jsx
+  [%html
     {|
       <code
         *{attrs}
@@ -380,6 +380,7 @@ let inline_code
         %{Color.fg color}
         %{Test_selector.attr_of_opt test_selector}
         %{Classes.data_skyline_component "text"}
+        %{Classes.font_monospace}
         %{Style.code}
         >*{children}</code
       >

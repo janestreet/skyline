@@ -38,15 +38,15 @@ module Style = struct
 end
 
 let horizontal ?(attrs = []) ?(length = `Percent Percent.one_hundred_percent) () =
-  {%html.jsx|<hr %{Style.horizontal ~width:length} *{attrs} />|}
+  {%html|<hr %{Style.horizontal ~width:length} *{attrs} />|}
 ;;
 
 let vertical ?(attrs = []) ?(length = `Percent Percent.one_hundred_percent) () =
-  {%html.jsx|<hr %{Style.vertical ~height:length} *{attrs} />|}
+  {%html|<hr %{Style.vertical ~height:length} *{attrs} />|}
 ;;
 
 let interpunct =
-  {%html.jsx|
+  {%html|
     <span %{Style.symbol
         (* Set small line height so that the interpunct is centered correctly e.g. when in
            a flex container with [Small] text. *)
@@ -54,7 +54,7 @@ let interpunct =
   |}
 ;;
 
-let slash = {%html.jsx|<span %{Style.symbol ~line_height:(`Em 1)}>#{"/"}</span>|}
+let slash = {%html|<span %{Style.symbol ~line_height:(`Em 1)}>#{"/"}</span>|}
 
 module For_docs = struct
   let ml_filepath = [%here].pos_fname

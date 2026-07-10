@@ -36,20 +36,19 @@ module Default_theme = struct
           }
         |}]
     in
-    (function
+    let padding_style =
+      match collapsed with
       | `Collapsed_vertical | `Expanded ->
-        [ base_style
-        ; [%css
-            {|
-              padding: 0 0.4em;
-              & .title-text {
-                padding: 0.4em 0;
-              }
-            |}]
-        ]
-      | `Collapsed_horizontal -> [ base_style; [%css {|padding: 0.4em 0;|}] ])
-      collapsed
-    |> A.many
+        [%css
+          {|
+            padding: 0 0.4em;
+            & .title-text {
+              padding: 0.4em 0;
+            }
+          |}]
+      | `Collapsed_horizontal -> [%css {|padding: 0.4em 0;|}]
+    in
+    A.many [ base_style; padding_style ]
   ;;
 
   let tab_attr ~active ~collapsed =

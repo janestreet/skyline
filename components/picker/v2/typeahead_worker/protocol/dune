@@ -1,0 +1,6 @@
+(library
+ (name skyline_picker_v2_typeahead_search_worker_protocol)
+ (public_name skyline.picker_v2_typeahead_search_worker_protocol)
+ (preprocess
+  (pps ppx_jane js_of_ocaml-ppx))
+ (libraries core js_of_ocaml web_worker))

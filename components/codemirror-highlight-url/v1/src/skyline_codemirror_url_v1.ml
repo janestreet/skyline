@@ -43,12 +43,13 @@ let urls_regexp =
 let features_regexp = {|\bfe-\d+\b|(?<=^|[ [(\{])jane(/[a-zA-Z0-9_][a-zA-Z0-9._\-]*)+\b|}
 let regexp = [%string {|%{urls_regexp}|%{features_regexp}|}]
 
+let is_digit = function
+  | '0' .. '9' -> true
+  | _ -> false
+;;
+
 let looks_like_a_date text =
   (* Check for [YYYY-MM-DD] format. *)
-  let is_digit = function
-    | '0' .. '9' -> true
-    | _ -> false
-  in
   String.length text == 10
   && is_digit text.[0]
   && is_digit text.[1]
@@ -60,6 +61,24 @@ let looks_like_a_date text =
   && Char.equal text.[7] '-'
   && is_digit text.[8]
   && is_digit text.[9]
+;;
+
+let looks_like_a_time text =
+  (* Check for [HH-MM-SS.<digits>Z] format. *)
+  let len = String.length text in
+  len >= 10
+  && is_digit text.[0]
+  && is_digit text.[1]
+  && Char.equal text.[2] '-'
+  && is_digit text.[3]
+  && is_digit text.[4]
+  && Char.equal text.[5] '-'
+  && is_digit text.[6]
+  && is_digit text.[7]
+  && Char.equal text.[8] '.'
+  &&
+  let rec all_digits i = i >= len - 1 || (is_digit text.[i] && all_digits (i + 1)) in
+  all_digits 9 && Char.equal text.[len - 1] 'Z'
 ;;
 
 let href_of_match link =

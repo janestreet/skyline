@@ -15,3 +15,11 @@ val component
   -> content:'a Ui.Content.t
   -> local_ Bonsai.graph
   -> Vdom.Node.t Bonsai.t
+
+(** [columns] renders [views] as evenly-sized, resizable, side-by-side columns.
+
+    If you need control over sizing, titles, or other features, use [component] instead. *)
+val columns : Vdom.Node.t list Bonsai.t -> local_ Bonsai.graph -> Vdom.Node.t Bonsai.t
+
+(** [rows] is like [columns], but renders [views] as stacked rows. *)
+val rows : Vdom.Node.t list Bonsai.t -> local_ Bonsai.graph -> Vdom.Node.t Bonsai.t

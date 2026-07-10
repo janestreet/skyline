@@ -44,6 +44,12 @@ module Path = struct
   end
 end
 
+(* Helper function to apply [component]'s [?to_item_text] to a path, which changes the
+   search/default display text of leaf nodes *)
+let apply_item_text_to_path ~to_item_text (path : Path.t) item : Path.t =
+  Nonempty_list.append' (Nonempty_list.drop_last path) [ to_item_text path item ]
+;;
+
 module Branch = struct
   type 'a t =
     | Parent of Path.t
@@ -100,11 +106,12 @@ module Style = struct
           background-color: var(--alternate-background-color);
         }
 
-        .row:hover,
+        .row:hover:not([aria-disabled="true"]),
         .row.highlighted {
           background-color: var(--skyline-color-border);
         }
 
+        /* Disabled rows have no [tabindex], so they can never match [:focus]. */
         .row:focus {
           outline-color: var(--skyline-color-accent);
           outline-width: 1px;
@@ -125,7 +132,7 @@ module Style = struct
           color: var(--skyline-color-primary, inherit);
           background-color: inherit;
         }
-        .chevron:hover {
+        .row:not([aria-disabled="true"]) .chevron:hover {
           background-color: var(--skyline-color-border);
         }
 
@@ -152,14 +159,26 @@ module Style = struct
         }
       |}]
 
-  let row ~alternating_row_background =
+  let row ~alternating_row_background ~disabled =
     let alternate_background_color =
       if alternating_row_background
       then Skyline_theme_v1.surface |> Css_gen.Color.to_string_css
       else "inherit"
     in
+    let enabled_or_disabled =
+      (* Only enabled rows get a [tabindex], as disabled rows shouldn't t take focus (not
+         even on click). [Keyboard_navigation] relies on the presence of [tabindex] to
+         move focus with arrow keys.
+
+         [aria-disabled] rather than the native [disabled] attribute so that pointer
+         events (e.g. tooltips explaining why a row is disabled) still work. Assistive
+         tools and e.g. vimium look for [aria-disabled]. *)
+      if disabled
+      then [ Vdom.Attr.create "aria-disabled" "true"; Vdom.Attr.role "button" ]
+      else [ Vdom.Attr.tabindex 0 ]
+    in
     Vdom.Attr.many
-      [ Vdom.Attr.tabindex 0; Variables.set ~alternate_background_color (); row ]
+      (enabled_or_disabled @ [ Variables.set ~alternate_background_color (); row ])
   ;;
 
   let path_indent parents =
@@ -168,12 +187,12 @@ module Style = struct
   ;;
 end
 
-let tree_row_path_segment ~matching_indices key row : Path_segment.t =
+let tree_row_path_segment ~matching_indices ~display_path row : Path.Segment.t =
   let _, intent, branch = Bonsai_web_contrib_tree_table.Row.data row in
   let segments =
     List.fold_until
       (Bonsai_web_contrib_tree_table.Row.ancestors row)
-      ~init:[ Nonempty_list.last key ]
+      ~init:[ Nonempty_list.last display_path ]
       ~f:(fun acc (_, (_, _, branch)) ->
         match (branch : _ Branch.t) with
         | Empty path -> Continue (Nonempty_list.last path :: acc)
@@ -200,7 +219,7 @@ let tree_row_path_segment ~matching_indices key row : Path_segment.t =
   }
 ;;
 
-let list_row_path_segment ~decoration ~matching_indices key : Path_segment.t =
+let list_row_path_segment ~decoration ~matching_indices key : Path.Segment.t =
   let intent =
     match (decoration : Decoration.t) with
     | Primary | Secondary | Inherit -> `Primary `None
@@ -227,7 +246,7 @@ let is_child_of_collapsed ~collapsed_paths row =
     | Parent _ | Leaf_parent _ | Leaf _ -> Set.mem collapsed_paths key)
 ;;
 
-let tree_row_contents ~collapsed ~toggle_collapsed ~content key row =
+let tree_row_contents ~collapsed ~disabled ~toggle_collapsed ~content key row =
   let indent =
     let non_empty_parents =
       List.count
@@ -242,14 +261,19 @@ let tree_row_contents ~collapsed ~toggle_collapsed ~content key row =
   let toggle =
     match collapsed with
     | Some collapsed ->
-      let toggle_on_click =
-        Vdom.Attr.on_click (fun event ->
-          Js_of_ocaml.Dom_html.stopPropagation event;
-          Js_of_ocaml.Dom.preventDefault event;
-          toggle_collapsed key)
+      let attrs =
+        if disabled
+        then [ Style.chevron ]
+        else
+          [ Style.chevron
+          ; Vdom.Attr.on_click (fun event ->
+              Js_of_ocaml.Dom_html.stopPropagation event;
+              Js_of_ocaml.Dom.preventDefault event;
+              toggle_collapsed key)
+          ]
       in
-      Vdom.Node.button
-        ~attrs:[ Style.chevron; toggle_on_click ]
+      (if disabled then Vdom.Node.div else Vdom.Node.button)
+        ~attrs
         [ Codicons.svg (if collapsed then Chevron_right else Chevron_down) ]
     | None -> None
   in
@@ -272,7 +296,9 @@ let tree_row
   ~collapsed_paths
   ~toggle_collapsed
   ~search
+  ~to_item_text
   ~on_click
+  ~disabled
   ~on_contextmenu
   ~highlight
   ~render_segment
@@ -290,35 +316,44 @@ let tree_row
     | _, _, branch ->
       if is_child_of_collapsed ~collapsed_paths row then Empty key else branch
   in
+  let display_path =
+    let%arr key and branch in
+    match to_item_text, (branch : _ Branch.t) with
+    | None, _ | Some _, (Parent _ | Empty _) -> key
+    | Some to_item_text, (Leaf_parent (_, item) | Leaf (_, item)) ->
+      apply_item_text_to_path ~to_item_text key item
+  in
   let matching_indices =
-    let%arr search and key in
+    let%arr search and display_path in
     let%bind.Option search in
-    Fuzzy_search.matching_indices search ~item:(Path.to_string key)
+    Fuzzy_search.matching_indices search ~item:(Path.to_string display_path)
   in
   let highlight =
     let%arr key
     and highlight = Bonsai.transpose_opt highlight in
     Option.value_map highlight ~f:(Path.equal key) ~default:false
   in
-  let container ~on_click ~on_contextmenu ~highlight contents =
+  let container ~disabled ~on_click ~on_contextmenu ~highlight contents =
     let attrs =
-      [ Style.row ~alternating_row_background
+      [ Style.row ~alternating_row_background ~disabled
       ; (if highlight then Style.highlighted else Vdom.Attr.empty)
-      ; (if disable_keyboard_navigation
+      ; (if disabled || disable_keyboard_navigation
          then Vdom.Attr.empty
          else Keyboard_navigation.row_attr ~on_enter:on_click)
-      ; Vdom.Attr.on_contextmenu on_contextmenu
+      ; (if disabled then Vdom.Attr.empty else Vdom.Attr.on_contextmenu on_contextmenu)
       ]
     in
-    match on_click with
-    | Effect.Open { url; target } ->
+    match disabled, on_click with
+    | true, _ -> Vdom.Node.div ~attrs contents
+    | false, Effect.Open { url; target } ->
       Vdom.Node.a
         ~attrs:
           (Vdom.Attr.href url
            :: Vdom.Attr.target (Effect.Open_url_target.to_target target)
            :: attrs)
         contents
-    | _ -> Vdom.Node.button ~attrs:(Vdom.Attr.on_click (const on_click) :: attrs) contents
+    | false, _ ->
+      Vdom.Node.button ~attrs:(Vdom.Attr.on_click (const on_click) :: attrs) contents
   in
   match%sub branch with
   | Empty _ -> Bonsai.return None
@@ -326,22 +361,26 @@ let tree_row
     let%arr content =
       render_segment
         key
-        (let%arr matching_indices and key and row in
-         tree_row_path_segment ~matching_indices key row)
+        (let%arr matching_indices and display_path and row in
+         tree_row_path_segment ~matching_indices ~display_path row)
         graph
     and collapsed_paths
     and toggle_collapsed
     and on_click
+    and disabled
     and on_contextmenu
     and highlight
     and key
     and row in
+    let disabled = disabled key None in
     container
+      ~disabled
       ~on_click:(on_click key None)
       ~on_contextmenu:(fun event -> on_contextmenu event key None)
       ~highlight
       [ tree_row_contents
           ~collapsed:(Some (Set.mem collapsed_paths key))
+          ~disabled
           ~toggle_collapsed
           ~content
           key
@@ -352,24 +391,28 @@ let tree_row
     let%arr content =
       render_item
         key
-        (let%arr matching_indices and key and row in
-         tree_row_path_segment ~matching_indices key row)
+        (let%arr matching_indices and display_path and row in
+         tree_row_path_segment ~matching_indices ~display_path row)
         item
         graph
     and collapsed_paths
     and toggle_collapsed
     and on_click
+    and disabled
     and on_contextmenu
     and highlight
     and key
     and item
     and row in
+    let disabled = disabled key (Some item) in
     container
+      ~disabled
       ~on_click:(on_click key (Some item))
       ~on_contextmenu:(fun event -> on_contextmenu event key (Some item))
       ~highlight
       [ tree_row_contents
           ~collapsed:(Some (Set.mem collapsed_paths key))
+          ~disabled
           ~toggle_collapsed
           ~content
           key
@@ -380,31 +423,36 @@ let tree_row
     let%arr content =
       render_item
         key
-        (let%arr matching_indices and key and row in
-         tree_row_path_segment ~matching_indices key row)
+        (let%arr matching_indices and display_path and row in
+         tree_row_path_segment ~matching_indices ~display_path row)
         item
         graph
     and toggle_collapsed
     and on_click
+    and disabled
     and on_contextmenu
     and highlight
     and key
     and item
     and row in
+    let disabled = disabled key (Some item) in
     container
+      ~disabled
       ~on_click:(on_click key (Some item))
       ~on_contextmenu:(fun event -> on_contextmenu event key (Some item))
       ~highlight
-      [ tree_row_contents ~collapsed:None ~toggle_collapsed ~content key row ]
+      [ tree_row_contents ~collapsed:None ~disabled ~toggle_collapsed ~content key row ]
     |> Option.return
 ;;
 
 let list_row
   ~search
+  ~to_item_text
   ~highlight
   ~decoration
   ~render_item
   ~on_click
+  ~disabled
   ~on_contextmenu
   ~alternating_row_background
   ~disable_keyboard_navigation
@@ -412,20 +460,26 @@ let list_row
   item
   graph
   =
+  let display_path =
+    let%arr key and item in
+    Option.value_map to_item_text ~default:key ~f:(fun to_item_text ->
+      apply_item_text_to_path ~to_item_text key item)
+  in
   let matching_indices =
-    let%arr search and key in
+    let%arr search and display_path in
     let%bind.Option search in
-    Fuzzy_search.matching_indices search ~item:(Path.to_string key)
+    Fuzzy_search.matching_indices search ~item:(Path.to_string display_path)
   in
   let%arr on_click
+  and disabled
   and on_contextmenu
   and highlight = Bonsai.transpose_opt highlight
   and content =
     render_item
       key
-      (let%arr matching_indices and key and item in
+      (let%arr matching_indices and display_path and key and item in
        let decoration = decoration key (Some item) in
-       list_row_path_segment ~decoration ~matching_indices key)
+       list_row_path_segment ~decoration ~matching_indices display_path)
       item
       graph
   and key
@@ -435,27 +489,36 @@ let list_row
     | Some key' when Path.equal key' key -> Style.highlighted
     | _ -> Vdom.Attr.empty
   in
+  let disabled = disabled key (Some item) in
   let on_click = on_click key (Some item) |> Option.value ~default:Effect.Ignore in
-  Vdom.Node.button
-    ~attrs:
-      [ Style.row ~alternating_row_background
-      ; highlight
-      ; Vdom.Attr.on_click (const on_click)
-      ; Vdom.Attr.on_contextmenu (fun event -> on_contextmenu event key (Some item))
-      ; (if disable_keyboard_navigation
-         then Vdom.Attr.empty
-         else Keyboard_navigation.row_attr ~on_enter:on_click)
-      ]
-    [ content ]
+  let attrs =
+    [ Style.row ~alternating_row_background ~disabled
+    ; highlight
+    ; (if disabled then Vdom.Attr.empty else Vdom.Attr.on_click (const on_click))
+    ; (if disabled
+       then Vdom.Attr.empty
+       else Vdom.Attr.on_contextmenu (fun event -> on_contextmenu event key (Some item)))
+    ; (if disabled || disable_keyboard_navigation
+       then Vdom.Attr.empty
+       else Keyboard_navigation.row_attr ~on_enter:on_click)
+    ]
+  in
+  (if disabled then Vdom.Node.div else Vdom.Node.button) ~attrs [ content ]
 ;;
 
-let tree_of_items' filter_and_items_by_path =
+let tree_of_items' ~to_item_text filter_and_items_by_path =
   let filter = Incr.map filter_and_items_by_path ~f:fst in
   let items_by_path = Incr.map filter_and_items_by_path ~f:snd in
   let add_item_to_tree ~filter ~key ~item tree =
     match filter with
     | Some query ->
-      let score = Fuzzy_search.score query ~item:(Path.to_string key) in
+      let search_path =
+        match to_item_text with
+        | None -> key
+        | Some to_item_text -> apply_item_text_to_path ~to_item_text key item
+      in
+      let search_string = Path.to_string search_path in
+      let score = Fuzzy_search.score query ~item:search_string in
       if score > 0
       then Bonsai_web_contrib_tree_table.Tree.set tree ~key ~data:(score, item)
       else tree
@@ -490,6 +553,7 @@ let tree_of_items
   ~decoration
   ~has_external_children
   ~search
+  ~to_item_text
   items_by_path
   graph
   =
@@ -623,7 +687,7 @@ let tree_of_items
   Bonsai.Incr.compute
     (Bonsai.both search items_by_path)
     ~f:(fun filter_and_items_by_path ->
-      tree_of_items' filter_and_items_by_path
+      tree_of_items' ~to_item_text filter_and_items_by_path
       |> Bonsai_web_contrib_tree_table.map ~how_to_map
       |> Bonsai_web_contrib_tree_table.tree_to_map ~how_to_deal_with_nones:Preserve)
     graph
@@ -681,7 +745,9 @@ let component
   ?compare_path
   ?compare
   ?(filter = Bonsai.return "")
+  ?to_item_text
   ?on_click
+  ?(disabled = Bonsai.return (fun _ _ -> false))
   ?on_contextmenu
   ?highlight
   ?(decoration =
@@ -692,7 +758,7 @@ let component
   ?segment:(render_segment =
       fun _ segment (local_ _graph) ->
         let%arr segment in
-        Path_segment.component segment)
+        Path.Segment.component segment)
   ?item:(render_item = fun path segment _ graph -> render_segment path segment graph)
   (items_by_path : a Path.Map.t Bonsai.t)
   (local_ graph)
@@ -756,6 +822,7 @@ let component
         (tree_of_items
            ~merge_empty_paths
            ~search
+           ~to_item_text
            ~decoration
            ~has_external_children
            items_by_path
@@ -767,7 +834,9 @@ let component
               ~collapsed_paths
               ~toggle_collapsed
               ~search
+              ~to_item_text
               ~on_click
+              ~disabled
               ~on_contextmenu
               ~highlight
               ~render_segment
@@ -834,10 +903,12 @@ let component
           Bonsai.both
             (list_row
                ~search
+               ~to_item_text
                ~highlight
                ~decoration
                ~render_item
                ~on_click
+               ~disabled
                ~on_contextmenu
                ~alternating_row_background
                ~disable_keyboard_navigation
@@ -861,11 +932,16 @@ let component
          | None -> [%compare: int * _]
        in
        let sorted_rows =
-         List.filter_map (Map.to_alist list) ~f:(fun (key, row) ->
-           let%map.Option score =
-             Fuzzy_search.score_opt query ~item:(Path.to_string key)
+         List.filter_map (Map.to_alist list) ~f:(fun (key, (view, item)) ->
+           let search_path =
+             match to_item_text with
+             | None -> key
+             | Some to_item_text -> apply_item_text_to_path ~to_item_text key item
            in
-           score, row)
+           let%map.Option score =
+             Fuzzy_search.score_opt query ~item:(Path.to_string search_path)
+           in
+           score, (view, item))
          |> List.sort ~compare
          |> List.map ~f:snd
          |> List.map ~f:fst

@@ -31,7 +31,7 @@ open! Bonsai_web
         <Skyline_field_v2.view>
           <Skyline.Typeahead.Select_input.content
             ~placeholder:%{"Pick a fruit..."}
-            ~render_anchor_content:%{Render_selection (fun fruit ->
+            ~render_selection:%{Render (fun fruit ->
                 Vdom.Node.text (Fruit.to_string fruit))}
             ~controller
           />
@@ -41,17 +41,15 @@ open! Bonsai_web
 
 (** How to render the select anchor button.
 
-    - [Render_selection] can only be used with [Selection_mode.Single_ux]; the wrapped
-      function is called with the selected ['a] item.
-    - [Render_multi_selection] can only be used with [Selection_mode.Multi_ux]; the
-      wrapped function is called with the full list of selected items.
+    - [Render] can only be used with [Selection_mode.Single_ux]; the wrapped function is
+      called with the selected ['a] item.
+    - [Render_multi] can only be used with [Selection_mode.Multi_ux]; the wrapped function
+      is called with the full list of selected items.
 
     These constraints are enforced by the types. *)
-type ('a, 'selection) render_anchor_content =
-  | Render_selection : ('a -> Vdom.Node.t) -> ('a, 'a option) render_anchor_content
-  | Render_multi_selection :
-      ('a list -> Vdom.Node.t)
-      -> ('a, 'a list) render_anchor_content
+type ('a, 'selection) render_selection =
+  | Render : ('a -> Vdom.Node.t) -> ('a, 'a option) render_selection
+  | Render_multi : ('a list -> Vdom.Node.t) -> ('a, 'a list) render_selection
 
 (** [content] creates a [Skyline_field_v2.Content.t] for use inside a
     [Skyline_field_v2.view]. The select inherits [size], [intent], and [disabled] from the
@@ -60,18 +58,33 @@ type ('a, 'selection) render_anchor_content =
     - [?test_selector] - test selector for the anchor button
     - [?attrs] - additional attributes on the anchor button
     - [~placeholder] - text shown on the button when nothing is selected
-    - [?render_anchor_content] - rendering for the anchor button. Use [Render_selection]
-      with [Single_ux] controllers or [Render_multi_selection] with [Multi_ux]
-      controllers. When omitted, the string representation from [to_string] is used.
+    - [?render_selection] - rendering for the anchor button. Use [Render] with [Single_ux]
+      controllers or [Render_multi] with [Multi_ux] controllers. When omitted, the string
+      representation from [to_string] is used.
     - [~controller] - the typeahead controller, see [Typeahead_controller.component]. *)
 val content
   :  ?test_selector:Test_selector.t
   -> ?attrs:Vdom.Attr.t list
-  -> ?render_anchor_content:('a, 'selection) render_anchor_content
+  -> ?render_selection:('a, 'selection) render_selection
   -> placeholder:string
   -> controller:('a, 'selection) Typeahead_controller.t
   -> unit
   -> Skyline_field_v2.Content.t
+
+(** Interaction attributes for a custom select anchor driven by an [Effect_only]
+    controller. Can be used in combination with [Elements.anchor] or any other vdom
+    element. Note that this attr depends on [on_click] events firing to open the popover. *)
+val attr : ('a, unit) Typeahead_controller.t -> Vdom.Attr.t
+
+module Elements : sig
+  (** Renders only the button-like select anchor shell. Use to build a custom select which
+      is visually similar to [content]. *)
+  val anchor
+    :  ?test_selector:Test_selector.t
+    -> ?attrs:Vdom.Attr.t list
+    -> Vdom.Node.t list
+    -> Skyline_field_v2.Content.t
+end
 
 module For_docs : sig
   val ml_filepath : string

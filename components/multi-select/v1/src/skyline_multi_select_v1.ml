@@ -353,7 +353,7 @@ let component
             [ disabled
             ; autofocus
             ; Vdom.Attr.placeholder placeholder
-            ; Vdom.Attr.value_prop query
+            ; Vdom.Attr.value query
             ; Vdom.Attr.on_input (fun _ input ->
                 let%bind.Effect () = set_query input in
                 inject Activate)

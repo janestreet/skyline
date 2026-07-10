@@ -42,6 +42,7 @@ module State : sig
         internal state is created automatically. *)
   val create
     :  ?state:Date.t option Bonsai.t * (Date.t option -> unit Effect.t) Bonsai.t
+    -> ?today_for_test:Date.t
     -> Bonsai.graph @ local
     -> t Bonsai.t
 end
@@ -60,4 +61,25 @@ val content
 
 module For_docs : sig
   val ml_filepath : string
+end
+
+module For_testing : sig
+  val copy
+    :  set_clipboard_value:(string -> unit)
+    -> prevent_default:(unit -> unit)
+    -> Date.t option
+    -> bool
+
+  val cut
+    :  disabled:bool
+    -> set_clipboard_value:(string -> unit)
+    -> prevent_default:(unit -> unit)
+    -> Date.t option
+    -> Date.t option option
+
+  val paste
+    :  disabled:bool
+    -> clipboard_value:string
+    -> prevent_default:(unit -> unit)
+    -> Date.t option option
 end

@@ -155,7 +155,7 @@ module Content = struct
 end
 
 let view ?test_selector ?(size = `Md) ?(attrs = []) children =
-  [%html.jsx
+  [%html
     {|
       <dialog
         open
@@ -181,7 +181,7 @@ module Section = struct
     ~is_first
     ~is_last
     =
-    [%html.jsx
+    [%html
       {|
         <section
           %{Style.section ~is_first ~is_last ~close_button_present ~scrollable ~full_bleed size}
@@ -254,9 +254,10 @@ module Close_button = struct
   let content ?test_selector ?(attrs = []) () ~close =
     Content.Close_button
       (fun ~size ->
-        [%html.jsx
+        [%html
           {|
             <Skyline_button_v2.view
+              ~type_attr:%{Submit}
               ?test_selector
               ~size
               ~variant:%{Ghost}

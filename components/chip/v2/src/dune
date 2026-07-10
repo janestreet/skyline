@@ -1,8 +1,8 @@
 (library
  (name skyline_chip_v2)
  (public_name skyline.chip_v2)
- (libraries bonsai bonsai_web core virtual_dom.css_gen
-   private_skyline_prelude skyline_intent skyline_size tailwind_colors)
+ (libraries bonsai_web core virtual_dom.css_gen private_skyline_prelude
+   skyline_intent skyline_size tailwind_colors)
  (preprocess
   (pps ppx_css ppx_html ppx_jane))
  (flags :standard -alert -skyline_beta))

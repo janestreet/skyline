@@ -1,15 +1,18 @@
 (library
  (name skyline_picker_v2)
  (public_name skyline.picker_v2)
+ (preprocessor_deps ../typeahead_worker/bin/typeahead_worker.bc.js)
  (preprocess
-  (pps ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css ppx_html))
- (libraries am_running_how_js bonsai bonsai.kernel_components.throttle
-   bonsai_web bonsai_web_focusable_list bonsai_web_components.icon
+  (pps ppx_embed_file ppx_jane js_of_ocaml-ppx bonsai.ppx_bonsai ppx_css
+    ppx_html))
+ (libraries am_running_how_js bonsai.kernel_components.throttle bonsai_web
+   bonsai_web_focusable_list bonsai_web_components.icon
    bonsai_web_components.toplayer core virtual_dom.css_gen fuzzy_match.search
    js_of_ocaml bonsai_web_components.lucide private_skyline_dom
-   private_skyline_listbox private_skyline_prelude
-   private_skyline_utility_classes skyline_button_v2
+   private_skyline_listbox private_skyline_prelude skyline_button_v2
    skyline_checkbox_input_v2 skyline_chip_v2 skyline_field_v2 skyline_intent
-   skyline_popover_v2 skyline_size skyline_text_input_v2 skyline_text_v2
-   skyline_tokens_v2 skyline_tooltip_v2)
+   skyline_picker_v2_typeahead_search_worker_protocol
+   skyline_picker_v2_typeahead_search_worker_state skyline_popover_v2
+   skyline_size skyline_text_input_v2 skyline_text_v2 skyline_tooltip_v2
+   web_worker)
  (flags :standard -alert -skyline_beta))

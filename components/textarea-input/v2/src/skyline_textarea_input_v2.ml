@@ -25,11 +25,18 @@ module Style = struct
       ]
   ;;
 
-  let size = function
-    | `Xs -> Classes.[ text_xs; px 0.5; rounded_xs ]
-    | `Sm -> Classes.[ text_sm; px 1.; rounded_xs ]
-    | `Md -> Classes.[ text_base; px 2.; py 1.; rounded_sm ]
-    | `Lg -> Classes.[ text_lg; px 2.; py 2.; rounded_md ]
+  let text_size = function
+    | `Xs -> Classes.text_xs
+    | `Sm | `Md | `Lg -> Classes.text_sm
+  ;;
+
+  let size size =
+    let text_size = text_size size in
+    match size with
+    | `Xs -> Classes.[ text_size; px 0.5; rounded_xs ]
+    | `Sm -> Classes.[ text_size; px 1.; rounded_xs ]
+    | `Md -> Classes.[ text_size; px 2.; py 1.; rounded_sm ]
+    | `Lg -> Classes.[ text_size; px 2.; py 2.; rounded_md ]
   ;;
 
   let border_color ~disabled intent =
@@ -97,9 +104,9 @@ let content
       | Some placeholder -> Attr.placeholder placeholder
     in
     let maybe_disabled_attr = if disabled then Classes.disabled else Attr.empty in
-    {%html.jsx|
+    {%html|
       <textarea
-        %{Attr.value_prop value}
+        %{Attr.value value}
         *{input_attrs}
         %{placeholder}
         %{maybe_disabled_attr}

@@ -1,11 +1,3 @@
-[@@@alert
-  skyline_beta
-    {|
-This component is currently in a beta phase. Its styling may change in breaking ways.
-If you're interested in using this component please reach out to Skyline devs.
-We appreciate your enthusiasm. Thanks.
-|}]
-
 open! Core
 open! Bonsai_web
 

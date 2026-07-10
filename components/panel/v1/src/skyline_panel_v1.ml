@@ -1,5 +1,6 @@
 open! Core
 open! Bonsai_web
+open! Bonsai.Let_syntax
 module Config = Bonsai_web_panel.Config
 module Logic = Bonsai_web_panel.Logic
 module Ui = Bonsai_web_panel.Ui
@@ -151,3 +152,27 @@ let component ~logic ~content (local_ graph) =
     ~content
     graph
 ;;
+
+let stack ~create_stack views (local_ graph) =
+  let config =
+    let%arr views in
+    let size =
+      match List.length views with
+      | 0 -> Config.Size.percent_of_float 1.
+      | view_count -> Config.Size.percent_of_float (1. /. Float.of_int view_count)
+    in
+    List.mapi views ~f:(fun idx _ ->
+      ( Config.create_content idx
+      , Config.Child_layout.create ~min_size:(Config.Size.Px 24) size ))
+    |> create_stack
+  in
+  let logic = Logic.create ~equal:[%equal: int] ~sexp_of:[%sexp_of: int] ~config graph in
+  let content idx (_graph @ local) =
+    let%arr idx and views in
+    List.nth views idx |> Option.value ~default:Vdom.Node.none
+  in
+  component ~logic ~content graph
+;;
+
+let columns views graph = stack ~create_stack:Config.create_stack_horizontal views graph
+let rows views graph = stack ~create_stack:Config.create_stack_vertical_fixed views graph

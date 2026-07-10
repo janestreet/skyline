@@ -96,5 +96,11 @@ let install
   | vdom -> Vdom.Node.div ~attrs:[ set_globals ] [ vdom ]
 ;;
 
+let infer_theme_from_system (local_ graph) =
+  match%arr Skyline_media_query_v1.matches "(prefers-color-scheme: dark)" graph with
+  | true -> Skyline_theme_v1.Style.Dark
+  | false -> Light
+;;
+
 let theme graph = Bonsai.Dynamic_scope.lookup theme_scope graph
 let accent graph = Bonsai.Dynamic_scope.lookup accent_scope graph

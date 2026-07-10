@@ -1,33 +1,6 @@
 open! Core
 open! Private_skyline_prelude
-module Keyboard_code = Segmented_input.Keyboard_code
-
-let handle_digit_keycode (code : Keyboard_code.t) =
-  match code with
-  | Digit0 | Numpad0 -> Some "0"
-  | Digit1 | Numpad1 -> Some "1"
-  | Digit2 | Numpad2 -> Some "2"
-  | Digit3 | Numpad3 -> Some "3"
-  | Digit4 | Numpad4 -> Some "4"
-  | Digit5 | Numpad5 -> Some "5"
-  | Digit6 | Numpad6 -> Some "6"
-  | Digit7 | Numpad7 -> Some "7"
-  | Digit8 | Numpad8 -> Some "8"
-  | Digit9 | Numpad9 -> Some "9"
-  | _ -> None
-;;
-
-let numeric_increment ~max value =
-  match Option.bind value ~f:Int.of_string_opt with
-  | None -> "1"
-  | Some n -> Int.to_string (if n >= max then 0 else n + 1)
-;;
-
-let numeric_decrement ~max value =
-  match Option.bind value ~f:Int.of_string_opt with
-  | None -> Int.to_string max
-  | Some n -> Int.to_string (if n <= 0 then max else n - 1)
-;;
+module Segmented_input = Private_skyline_segmented_input
 
 let zero_pad ~width value =
   let pad_len = max 0 (width - String.length value) in
@@ -42,36 +15,33 @@ let validate_numeric_range ~max value =
 ;;
 
 let hh_config : Segmented_input.Segment_spinbutton.Config.t =
-  { placeholder = "HH"
-  ; aria_label = "hours"
-  ; width = 2
-  ; display = zero_pad ~width:2
-  ; handle_append_keycode = handle_digit_keycode
-  ; increment = numeric_increment ~max:23
-  ; decrement = numeric_decrement ~max:23
-  }
+  Segmented_input.Segment_spinbutton.Config.make_numeric
+    ~placeholder:"HH"
+    ~aria_label:"hours"
+    ~min:0
+    ~max:23
+    ~step:6
+    ()
 ;;
 
 let mm_config : Segmented_input.Segment_spinbutton.Config.t =
-  { placeholder = "MM"
-  ; aria_label = "minutes"
-  ; width = 2
-  ; display = zero_pad ~width:2
-  ; handle_append_keycode = handle_digit_keycode
-  ; increment = numeric_increment ~max:59
-  ; decrement = numeric_decrement ~max:59
-  }
+  Segmented_input.Segment_spinbutton.Config.make_numeric
+    ~placeholder:"MM"
+    ~aria_label:"minutes"
+    ~min:0
+    ~max:59
+    ~step:15
+    ()
 ;;
 
 let ss_config : Segmented_input.Segment_spinbutton.Config.t =
-  { placeholder = "SS"
-  ; aria_label = "seconds"
-  ; width = 2
-  ; display = zero_pad ~width:2
-  ; handle_append_keycode = handle_digit_keycode
-  ; increment = numeric_increment ~max:59
-  ; decrement = numeric_decrement ~max:59
-  }
+  Segmented_input.Segment_spinbutton.Config.make_numeric
+    ~placeholder:"SS"
+    ~aria_label:"seconds"
+    ~min:0
+    ~max:59
+    ~step:15
+    ()
 ;;
 
 type hh_mm =
@@ -283,6 +253,54 @@ let set_spinbutton (sb : Segmented_input.Segment_spinbutton.t) v =
   sb.apply_action (Segmented_input.Segment_state.Action.Set_value (fun _ -> v))
 ;;
 
+let time_to_clipboard_string ~show_seconds time =
+  if show_seconds
+  then Time_ns.Ofday.to_sec_string time
+  else Time_ns.Ofday.to_string_trimmed time
+;;
+
+let copy ~show_seconds ~set_clipboard_value ~prevent_default value =
+  let is_selection_empty =
+    (let open Js_of_ocaml in
+     let%bind.Option window = Browser_expert.Global.window () in
+     let%map.Option selection = window##.document##getSelection |> Js.Opt.to_option in
+     selection##.isCollapsed |> Js.to_bool)
+    |> Option.value ~default:false
+  in
+  match is_selection_empty, value with
+  | true, Some v ->
+    set_clipboard_value (time_to_clipboard_string ~show_seconds v);
+    prevent_default ();
+    true
+  | false, _ | _, None ->
+    (* If the user has directly selected some text, or if the time input is
+       invalid/incomplete, fall back to the native browser copy behavior. *)
+    false
+;;
+
+let cut ~disabled ~show_seconds ~set_clipboard_value ~prevent_default value =
+  if disabled
+  then None
+  else (
+    match copy ~show_seconds ~set_clipboard_value ~prevent_default value with
+    | true -> Some None
+    | false -> None)
+;;
+
+let paste ~disabled ~clipboard_value ~prevent_default =
+  if disabled
+  then None
+  else (
+    match
+      Option.try_with (fun () ->
+        clipboard_value |> String.strip |> Time_ns.Ofday.of_string)
+    with
+    | Some v ->
+      prevent_default ();
+      Some (Some v)
+    | None -> None)
+;;
+
 let open_native_picker ~id =
   Effect.of_thunk (fun () ->
     let open Js_of_ocaml in
@@ -295,6 +313,8 @@ let open_native_picker ~id =
     in
     Option.iter element ~f:(fun element -> element##showPicker))
 ;;
+
+let const_ignore () = Vdom.Effect.Ignore
 
 let view_with_error
   ?test_selector
@@ -322,6 +342,30 @@ let view_with_error
     in
     let is_placeholder = Option.is_none spinbutton.state.value in
     Style.part ~disabled ~is_valid ~is_placeholder size intent
+  in
+  let set_all_spinbuttons new_value =
+    match new_value with
+    | None ->
+      let%bind.Effect (_ : string option) = set_spinbutton hh None in
+      let%bind.Effect (_ : string option) = set_spinbutton mm None in
+      let%bind.Effect (_ : string option) =
+        match ss with
+        | None -> Effect.return None
+        | Some ss -> set_spinbutton ss None
+      in
+      Effect.Ignore
+    | Some time ->
+      let { Time_ns.Span.Parts.hr; min; sec; _ } = Time_ns.Ofday.to_parts time in
+      let%bind.Effect (_ : string option) = set_spinbutton hh (Some (Int.to_string hr)) in
+      let%bind.Effect (_ : string option) =
+        set_spinbutton mm (Some (Int.to_string min))
+      in
+      let%bind.Effect (_ : string option) =
+        match ss with
+        | None -> Effect.return None
+        | Some ss -> set_spinbutton ss (Some (Int.to_string sec))
+      in
+      Effect.Ignore
   in
   let hidden_input =
     let extra_attrs =
@@ -357,32 +401,6 @@ let view_with_error
       ; Attr.tabindex (-1)
       ]
     in
-    let set_all_spinbuttons new_value =
-      match new_value with
-      | None ->
-        let%bind.Effect (_ : string option) = set_spinbutton hh None in
-        let%bind.Effect (_ : string option) = set_spinbutton mm None in
-        let%bind.Effect (_ : string option) =
-          match ss with
-          | None -> Effect.return None
-          | Some ss -> set_spinbutton ss None
-        in
-        Effect.Ignore
-      | Some time ->
-        let { Time_ns.Span.Parts.hr; min; sec; _ } = Time_ns.Ofday.to_parts time in
-        let%bind.Effect (_ : string option) =
-          set_spinbutton hh (Some (Int.to_string hr))
-        in
-        let%bind.Effect (_ : string option) =
-          set_spinbutton mm (Some (Int.to_string min))
-        in
-        let%bind.Effect (_ : string option) =
-          match ss with
-          | None -> Effect.return None
-          | Some ss -> set_spinbutton ss (Some (Int.to_string sec))
-        in
-        Effect.Ignore
-    in
     let value_string =
       Option.value_map value ~default:"" ~f:Time_ns.Ofday.to_millisecond_string
     in
@@ -399,13 +417,71 @@ let view_with_error
       <input
         type="time"
         *{extra_attrs}
-        %{Attr.value_prop value_string}
+        %{Attr.value value_string}
         %{on_input}
         ?{if disabled then Some Attr.disabled else None}
       />
     |}
   in
   let on_activate = open_native_picker ~id in
+  let show_seconds = Option.is_some ss in
+  let handle_copy (event : Js_of_ocaml.Dom_html.clipboardEvent Js_of_ocaml.Js.t) =
+    Js_of_ocaml.Js.Opt.case event##.clipboardData const_ignore (fun clipboard_data ->
+      let set_clipboard_value v =
+        let open Js_of_ocaml in
+        clipboard_data##setData (Js.string "text/plain") (Js.string v)
+      in
+      let prevent_default () = event##preventDefault in
+      let (_ : bool) = copy ~show_seconds ~set_clipboard_value ~prevent_default value in
+      Effect.Ignore)
+  in
+  let handle_cut (event : Js_of_ocaml.Dom_html.clipboardEvent Js_of_ocaml.Js.t) =
+    Js_of_ocaml.Js.Opt.case event##.clipboardData const_ignore (fun clipboard_data ->
+      let set_clipboard_value v =
+        let open Js_of_ocaml in
+        clipboard_data##setData (Js.string "text/plain") (Js.string v)
+      in
+      let prevent_default () = event##preventDefault in
+      match cut ~disabled ~show_seconds ~set_clipboard_value ~prevent_default value with
+      | Some o -> set_all_spinbuttons o
+      | None -> Effect.Ignore)
+  in
+  let handle_paste (event : Js_of_ocaml.Dom_html.clipboardEvent Js_of_ocaml.Js.t) =
+    Js_of_ocaml.Js.Opt.case event##.clipboardData const_ignore (fun clipboard_data ->
+      let clipboard_value =
+        let open Js_of_ocaml in
+        clipboard_data##getData
+          (* We use the more permissive ["text"] (rather than ["text/plain"]) in the read case *)
+          (Js.string "text")
+        |> Js.to_string
+      in
+      let prevent_default () = event##preventDefault in
+      match paste ~disabled ~clipboard_value ~prevent_default with
+      | Some o -> set_all_spinbuttons o
+      | None -> Effect.Ignore)
+  in
+  let handle_keydown (event : Js_of_ocaml.Dom_html.keyboardEvent Js_of_ocaml.Js.t) =
+    match
+      Vdom_keyboard.Keyboard_event.(
+        ( match_modifiers ~ctrl:true ~alt:false ~shift:false ~meta:false event
+        , Keyboard_code.of_event event ))
+    with
+    | true, KeyA ->
+      let open Js_of_ocaml in
+      (let%bind.Option current_target = event##.currentTarget |> Js.Opt.to_option in
+       let%bind.Option window = Browser_expert.Global.window () in
+       let%bind.Option node =
+         Browser_expert.coerce ~to_:window##._Node_t current_target
+       in
+       let%map.Option selection = window##.document##getSelection |> Js.Opt.to_option in
+       node, selection)
+      |> Option.iter ~f:(fun (node, selection) ->
+        selection##selectAllChildren ~node;
+        event##preventDefault;
+        event##stopPropagation);
+      Effect.Ignore
+    | _, _ -> Effect.Ignore
+  in
   let maybe_disabled_style =
     if disabled
     then
@@ -444,19 +520,23 @@ let view_with_error
         ; Style.container ~disabled ~size ~intent
         ; Attr.many attrs
         ; on_click_prevent_default
+        ; Attr.on_copy handle_copy
+        ; Attr.on_cut handle_cut
+        ; Attr.on_paste handle_paste
+        ; Attr.on_keydown handle_keydown
         ]
       ~disabled
+      ~action_element:
+        (Segmented_input.Action_element.content
+           ~on_activate
+           ~attrs:[ Style.clock_icon ~disabled ~size ~intent ]
+           [ clock_icon ])
+      ~hidden_element:(Segmented_input.Hidden_element.content [ hidden_input ])
       ([ Segmented_input.Content.segment ~attrs:[ part_style ~max:23 hh ] ~segment:hh ()
        ; Segmented_input.Content.delimiter ~char:':' ()
        ; Segmented_input.Content.segment ~attrs:[ part_style ~max:59 mm ] ~segment:mm ()
        ]
-       @ ss_segments
-       @ [ Segmented_input.Content.action_element
-             ~on_activate
-             ~attrs:[ Style.clock_icon ~disabled ~size ~intent ]
-             [ clock_icon ]
-         ; Segmented_input.Content.vdom [ hidden_input ]
-         ])
+       @ ss_segments)
   in
   let error =
     let invalid_parts =
@@ -623,11 +703,12 @@ let content ?test_selector ?attrs ~controller () =
       ())
 ;;
 
-module For_testing = struct
-  module Segmented_input = Segmented_input
-  module Segment_spinbutton = Segmented_input.Segment_spinbutton
-end
-
 module For_docs = struct
   let ml_filepath = [%here].pos_fname
+end
+
+module For_testing = struct
+  let copy = copy
+  let cut = cut
+  let paste = paste
 end

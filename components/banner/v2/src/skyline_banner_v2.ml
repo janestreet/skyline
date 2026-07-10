@@ -142,7 +142,7 @@ let loading_bar ~intent =
     | `Danger -> Classes.text_on_filled_alt_danger
     | `Warning -> Classes.text_on_filled_alt_warning
   in
-  [%html.jsx {|<div %{Style.loading_bar} style="pointer-events: none" %{color}></div>|}]
+  [%html {|<div %{Style.loading_bar} style="pointer-events: none" %{color}></div>|}]
 ;;
 
 let view ?test_selector ?(attrs = []) ?(size = `Md) ?(intent = `Primary) ?loading children
@@ -153,7 +153,7 @@ let view ?test_selector ?(attrs = []) ?(size = `Md) ?(intent = `Primary) ?loadin
     | `Indeterminate -> Some (loading_bar ~intent)
   in
   let children = List.map children ~f:(fun child -> child size) in
-  [%html.jsx
+  [%html
     {|
       <div
         style="position: relative; overflow: hidden"
@@ -177,7 +177,7 @@ let text_size : Skyline_size.t -> Skyline_text_v2.Size.t = function
 module Header = struct
   module T = struct
     let view' ?test_selector ?(attrs = []) children =
-      [%html.jsx
+      [%html
         {|
           <div
             %{Bonsai.Test_selector.attr_of_opt test_selector}
@@ -193,7 +193,7 @@ module Header = struct
 
   let view ?test_selector ?(attrs = []) children : Content.t =
     fun size ->
-    [%html.jsx
+    [%html
       {|
         <T.view'
           ?test_selector
@@ -208,7 +208,7 @@ module Header = struct
 
   let text ?test_selector ?(attrs = []) contents : Content.t =
     fun size ->
-    [%html.jsx
+    [%html
       {|
         <T.view'
           ?test_selector
@@ -230,7 +230,7 @@ module Header = struct
   ;;
 
   let icon ?test_selector ?(attrs = []) ~icon () =
-    [%html.jsx
+    [%html
       {|
         <Bonsai_web_icon.view
           ~size:%{`Raw "calc(1em + 2px)"}
@@ -242,13 +242,13 @@ module Header = struct
       |}]
   ;;
 
-  let spacer () = [%html.jsx {|<div style="flex: 1"></div>|}]
+  let spacer () = [%html {|<div style="flex: 1"></div>|}]
 end
 
 module Section = struct
   module T = struct
     let view' ?test_selector ?(attrs = []) children =
-      [%html.jsx
+      [%html
         {|
           <section
             *{Style.[body]}
@@ -264,7 +264,7 @@ module Section = struct
 
   let content ?test_selector ?(attrs = []) children : Content.t =
     fun size ->
-    [%html.jsx
+    [%html
       {|
         <T.view' ?test_selector %{Style.padding size} *{attrs}>
           *{children}
@@ -274,7 +274,7 @@ module Section = struct
 
   let text ?test_selector ?(attrs = []) contents : Content.t =
     fun size ->
-    [%html.jsx
+    [%html
       {|
         <T.view' ?test_selector %{Style.padding size} *{attrs}>
           <Skyline_text_v2.view style="display: contents" ~size:%{text_size size}>

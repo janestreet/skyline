@@ -175,7 +175,7 @@ let component
              ; suggestion_attr
              ; track_width
              ; Vdom.Attr.placeholder placeholder
-             ; Vdom.Attr.value_prop state
+             ; Vdom.Attr.value state
              ; Vdom.Attr.on_input (fun _ input ->
                  let%bind.Effect () = set_state input in
                  inject Activate)
